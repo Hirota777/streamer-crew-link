@@ -1,0 +1,94 @@
+import http from 'node:http';
+import {readFile} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {randomBytes,timingSafeEqual} from 'node:crypto';
+import {Store,cleanGame} from './lib/state.mjs';
+import {DiscordSession} from './lib/discord-session.mjs';
+import {Discord} from './lib/discord.mjs';
+import {OAuthFlow} from './lib/oauth.mjs';
+import {APPLICATION} from './lib/application.mjs';
+
+const here=path.dirname(fileURLToPath(import.meta.url));
+export async function createApp({directory=path.join(here,'data'),port=37891,credentialVault=null,discordClient,openExternal}={}){
+  const store=new Store(directory);await store.load();
+  const csrf=randomBytes(32).toString('hex');
+  const oauth=new OAuthFlow({application:APPLICATION,openExternal});
+  const client=discordClient??new Discord({authorize:()=>oauth.begin(),cancelAuthorization:()=>oauth.cancel()});
+  const discord=new DiscordSession({vault:credentialVault,client}), streams=new Set();await discord.initialize();
+  let game=null,lastGame=0,mode='live',demoTimer=null,connecting=false,reader={status:'waiting',message:'Among Usの起動を待っています'};
+  const demoGame={version:'表示確認用',modVersion:'デモ',scene:'Lobby',players:Array.from({length:11},(_,i)=>({key:'demo-game-'+i,name:['しろ','くろ','もも','そら','あお','むらさき','きいろ','みどり','あか','ライム','ローズ'][i],color:['#d6e0f0','#353846','#f3a6c5','#38e7df','#253fcd','#7739c4','#fff3a1','#147a45','#ca243e','#6ae33d','#d448aa'][i],colorId:[7,6,3,10,1,8,5,2,0,11,13][i],stable:false}))};
+  let demoMembers=[];
+  function snapshot(){
+    const isDemo=mode==='demo', online=isDemo||Date.now()-lastGame<5000;
+    const g=isDemo?demoGame:(online?game:null),members=isDemo?demoMembers:discord.members;
+    const preset=store.current;
+    const links=isDemo?demoGame.players.map((p,i)=>({gameKey:p.key,discordId:'demo-user-'+i,label:'',visible:true,order:i})):preset.links;
+    const rows=links.map(l=>{const player=g?.players.find(p=>p.key===l.gameKey),member=members.find(m=>m.id===l.discordId);return {...l,player:player??null,member:member??null};});
+    return {mode,reader,game:{online,version:g?.version??'',modVersion:g?.modVersion??'',players:g?.players??[]},discord:{status:isDemo?'デモ表示中':discord.status,channel:isDemo?'表示確認用':discord.channel?.name??'',members,auth:discord.info()},preset, presets:store.data.presets.map(p=>({id:p.id,name:p.name})),rows,overlayUrl:`http://127.0.0.1:${port}/overlay`,unmapped:g?.players.filter(p=>!links.some(l=>l.gameKey===p.key)).length??0};
+  }
+  function broadcast(){const payload='data: '+JSON.stringify(snapshot())+'\n\n';for(const s of streams)s.write(payload);}
+  discord.on('change',broadcast);
+  function stopDemo(){clearInterval(demoTimer);demoTimer=null;demoMembers=[];mode='live';}
+  function startDemo(){stopDemo();mode='demo';demoMembers=demoGame.players.map((p,i)=>({id:'demo-user-'+i,name:['Shiro','Kuro','Momo','Sora','Ao','Murasaki','Kiiro','Midori','Aka','Lime','Rose'][i],avatar:null,speaking:false}));demoTimer=setInterval(()=>{demoMembers.forEach((m,i)=>m.speaking=i===Math.floor(Date.now()/1100)%11);broadcast();},400);}
+  const timer=setInterval(broadcast,2000);timer.unref();
+  function equal(a,b){return typeof a==='string'&&Buffer.byteLength(a)===Buffer.byteLength(b)&&timingSafeEqual(Buffer.from(a),Buffer.from(b));}
+  async function body(req){let b='';for await(const c of req){b+=c;if(Buffer.byteLength(b)>128*1024)throw Error('送信データが大きすぎます。');}return JSON.parse(b||'{}');}
+  function json(res,value,status=200){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
+  const server=http.createServer(async(req,res)=>{
+    try{
+      if(!['127.0.0.1:'+port,'localhost:'+port].includes(req.headers.host)){json(res,{error:'接続先が不正です。'},403);return;}
+      const url=new URL(req.url,`http://127.0.0.1:${port}`),route=url.pathname;
+      res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');
+      if(req.method==='POST'){
+        if(!equal(req.headers['x-app-token'],csrf)){json(res,{error:'管理画面を再読み込みしてください。'},403);return;}
+        if(req.headers.origin&&!['http://127.0.0.1:'+port,'http://localhost:'+port].includes(req.headers.origin)){json(res,{error:'接続元が不正です。'},403);return;}
+        const b=await body(req);
+        switch(route){
+          case '/api/save':if(mode==='demo')throw Error('実際の接続に戻してから保存してください。');await store.save(b);break;
+          case '/api/presets/create':await store.create(b.name);break;
+          case '/api/presets/select':await store.select(b.id);break;
+          case '/api/demo':b.enabled?startDemo():stopDemo();break;
+          case '/api/discord/connect':
+            if(connecting)throw Error('接続処理中です。Discordの認証画面を確認してください。');
+            stopDemo();connecting=true;
+            try{await discord.connect(b);}finally{connecting=false;}break;
+          case '/api/discord/reconnect':stopDemo();await discord.reconnect();break;
+          case '/api/discord/disconnect':discord.disconnect();break;
+          case '/api/discord/forget':await discord.forget();break;
+          default:json(res,{error:'見つかりません。'},404);return;
+        }
+        broadcast();json(res,snapshot());return;
+      }
+      if(req.method!=='GET'){json(res,{error:'利用できない操作です。'},405);return;}
+      if(route==='/oauth/callback'){
+        const result=oauth.callback(url);
+        if(result.status===303){res.writeHead(303,{'Location':'/oauth/complete','Cache-Control':'no-store'});res.end();}
+        else{res.writeHead(result.status,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});res.end('認証の応答を受け付けられません。アプリから連携をやり直してください。');}return;
+      }
+      if(route==='/oauth/complete'){
+        res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'"});
+        res.end('<!doctype html><html lang="ja"><meta charset="utf-8"><title>Streamer crew link</title><h1>認証の応答を受け取りました</h1><p>Streamer crew linkに戻って接続結果を確認してください。このタブは閉じられます。</p></html>');return;
+      }
+      if(route==='/api/bootstrap'){json(res,{token:csrf,...snapshot()});return;}
+      if(route==='/api/state'){json(res,snapshot());return;}
+      if(route==='/api/events'){
+        res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});res.write('data: '+JSON.stringify(snapshot())+'\n\n');streams.add(res);req.on('close',()=>streams.delete(res));return;
+      }
+      if(/^\/icons\/au(?:red|blue|green|pink|orange|yellow|black|white|purple|brown|cyan|lime|maroon|rose|banana|gray|tan|coral)(?:dead)?\.png$/.test(route)){
+        res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'});res.end(await readFile(path.join(here,'public',route.slice(1))));return;
+      }
+      const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css'};
+      if(!routes[route]){json(res,{error:'見つかりません。'},404);return;}
+      const types={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
+      res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.discordapp.com; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'");
+      res.writeHead(200,{'Content-Type':types[path.extname(routes[route])]+'; charset=utf-8','Cache-Control':'no-cache'});res.end(await readFile(path.join(here,'public',routes[route])));
+    }catch(e){json(res,{error:e.message||'処理に失敗しました。'},400);}
+  });
+  function shutdown(){clearInterval(timer);stopDemo();discord.shutdown();for(const s of streams)s.end();streams.clear();server.close();}
+  server.on('close',()=>{clearInterval(timer);stopDemo();discord.shutdown();for(const s of streams)s.end();});
+  return {server,store,snapshot,shutdown,startDiscord:()=>discord.start(),ingestGame(body){game=cleanGame(body);lastGame=Date.now();broadcast();},setReaderStatus(status,message){reader={status,message};if(status!=='connected'){game=null;lastGame=0;}broadcast();}};
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+  try{const port=37891;const {server}=await createApp({port});server.on('error',e=>{console.error(e.code==='EADDRINUSE'?'すでに起動しているか、ポート37891が使用中です。':e.message);process.exitCode=1;});server.listen(port,'127.0.0.1',()=>console.log(`管理画面 http://127.0.0.1:${port}\nOBS用 http://127.0.0.1:${port}/overlay\n終了するには Ctrl+C`));}catch(e){console.error(e.message);process.exitCode=1;}
+}

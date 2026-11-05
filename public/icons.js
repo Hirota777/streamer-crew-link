@@ -1,0 +1,3 @@
+const colors=['red','blue','green','pink','orange','yellow','black','white','purple','brown','cyan','lime','maroon','rose','banana','gray','tan','coral'];
+export function colorIcon(player){return player&&Number.isInteger(player.colorId)&&player.colorKnown!==false&&colors[player.colorId]?`/icons/au${colors[player.colorId]}.png`:null;}
+export function appendCharacter(target,player){const source=colorIcon(player);if(source){const img=document.createElement('img');img.src=source;img.alt='';img.className='character-image';target.append(img);}else{const mark=document.createElement('span');mark.className='unknown-color';mark.style.background=player?.color||'#8794a3';mark.textContent='色 '+(player?.colorId??'?');target.append(mark);}}
