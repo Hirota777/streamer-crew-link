@@ -1,4 +1,4 @@
-const {app,BrowserWindow,dialog,Menu,safeStorage,shell}=require('electron');
+const {app,BrowserWindow,dialog,Menu,safeStorage,shell,ipcMain,clipboard}=require('electron');
 const path=require('node:path');const fs=require('node:fs');const {pathToFileURL}=require('node:url');
 const base=app.isPackaged?path.dirname(process.execPath):__dirname;
 const data=process.env.STREAMER_CREW_LINK_PROFILE?path.resolve(process.env.STREAMER_CREW_LINK_PROFILE):path.join(app.getPath('appData'),'Streamer crew link');fs.mkdirSync(path.join(data,'desktop'),{recursive:true});app.setPath('userData',path.join(data,'desktop'));
@@ -31,7 +31,11 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
    const {startReader}=await import(pathToFileURL(path.join(__dirname,'lib','reader.mjs')).href);
    stopReader=startReader(app.isPackaged?path.join(process.resourcesPath,'reader'):path.join(__dirname,'reader','release'),local.ingestGame,local.setReaderStatus);
    Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'アプリ',submenu:[{label:'OBS表示を開く',click:()=>{const overlay=new BrowserWindow({width:1400,height:330,backgroundColor:'#101820',webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});secure(overlay);overlay.loadURL(address+'/overlay');}},{type:'separator'},{label:'終了',role:'quit'}]},{label:'表示',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}]));
-   win=new BrowserWindow({width:1050,height:760,minWidth:780,minHeight:560,title:'Streamer crew link — Among Us 配信補助',backgroundColor:'#0b1018',show:false,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});
+   ipcMain.handle('crew-link:copy-overlay-url',async event=>{
+    if(!win||event.sender!==win.webContents||event.senderFrame!==win.webContents.mainFrame||new URL(event.senderFrame.url).origin!==address||new URL(event.senderFrame.url).pathname!=='/')throw Error('コピーを実行できません。');
+    await clipboard.writeText(address+'/overlay');
+   });
+   win=new BrowserWindow({width:1050,height:760,minWidth:780,minHeight:560,title:'Streamer crew link — Among Us 配信補助',backgroundColor:'#0b1018',show:false,webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});
    secure(win);win.once('ready-to-show',()=>win.show());await win.loadURL(address);
    local.startDiscord().catch(()=>{});
   }catch(e){dialog.showErrorBox('CREW LINKを起動できません',e.code==='EADDRINUSE'?'以前の開発版が起動しています。以前のアプリを終了してから起動してください。':e.message);app.quit();}

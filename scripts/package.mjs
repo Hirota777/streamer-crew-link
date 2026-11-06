@@ -11,7 +11,7 @@ const dotnet=spawnSync('dotnet',['publish',path.join(root,'reader','CrewLink.Rea
 if(dotnet.status!==0)throw Error('Reader build failed. Install the .NET 10 SDK.');
 await fs.rm(staging,{recursive:true,force:true});await fs.mkdir(staging,{recursive:true});
 for(const folder of ['lib','public'])await fs.cp(path.join(root,folder),path.join(staging,folder),{recursive:true});
-for(const file of ['desktop.cjs','server.mjs','package.json','README.md','PRIVACY.md','DISTRIBUTION.md'])await fs.copyFile(path.join(root,file),path.join(staging,file));
+for(const file of ['desktop.cjs','preload.cjs','server.mjs','package.json','README.md','PRIVACY.md','DISTRIBUTION.md'])await fs.copyFile(path.join(root,file),path.join(staging,file));
 const reader=path.join(root,'build','extra','reader');await fs.mkdir(reader,{recursive:true});
 await fs.copyFile(path.join(root,'reader','release','CrewLink.Reader.exe'),path.join(reader,'CrewLink.Reader.exe'));
 for(const file of ['profiles.json','LICENSE-AmongUsCapture.txt'])await fs.copyFile(path.join(root,'reader',file),path.join(reader,file));
