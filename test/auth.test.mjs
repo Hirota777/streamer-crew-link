@@ -38,6 +38,12 @@ test('保存をオフにした場合、接続が失敗しても以前の保存�
 test('切断後に遅れて届いた初回認証結果を保存しない',async()=>{
  const h=harness();await h.session.initialize();let finish;h.client.connect=async options=>{await new Promise(r=>finish=r);await options.onToken(tokens);};const connecting=h.session.connect({...credentials,remember:true});h.session.disconnect();finish();await connecting;assert.equal(h.stored,null);assert.equal(h.session.info().saved,false);
 });
+test('許可待ちで切断すると処理中表示を解除し、以前の終了処理が新しい接続を解除しない',async()=>{
+ const h=harness();await h.session.initialize();const finish=[];h.client.connect=()=>new Promise(r=>finish.push(r));
+ const first=h.session.connect({remember:true});assert.equal(h.session.info().busy,true);h.session.disconnect();assert.equal(h.session.info().busy,false);
+ const second=h.session.connect({remember:true});finish[0]();await first;assert.equal(h.session.info().busy,true);
+ h.session.disconnect();finish[1]();await second;assert.equal(h.session.info().busy,false);assert.equal(h.session.status,'未接続');
+});
 test('期限切れトークンを更新し、ローテーションされたrefresh tokenを認証前に保存',async()=>{
  let requestBody;const events=[];const d=new Discord({fetcher:async(_url,init)=>{requestBody=init.body;return {ok:true,json:async()=>({access_token:'new-access',refresh_token:'new-refresh',expires_in:3600})};}});
  d.open=async()=>{};d.call=async cmd=>{events.push(cmd);return {};};d.refresh=async()=>{};
