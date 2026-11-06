@@ -93,7 +93,7 @@ function receive(next){
   const demo=next.mode==='demo',auth=next.discord.auth;
   $('#game-status').textContent=demo?'デモ表示中':next.reader?.status==='unsupported'?'未対応バージョン':next.reader?.status==='error'?'読取を確認してください':next.game.online?next.game.players.length?'接続中':'ロビーを待っています':'起動・参加を待っています';
   $('#game-dot').classList.toggle('online',next.game.online);$('#game-count').textContent=next.game.players.length+'人';
-  const gameMode=next.game.modVersion.includes('SuperNewRoles')?'SNR':next.game.modVersion.includes('Nebula')?'Nebula':'Among Us';
+  const gameMode=/SNR|SuperNewRoles/.test(next.game.modVersion)?'SNR':next.game.modVersion.includes('Nebula')?'Nebula':'Among Us';
   $('#game-version').textContent=demo?'表示確認用の架空メンバー':next.game.online&&next.game.players.length&&!/待ち|同名|確認/.test(next.reader?.message||'')?gameMode+' · 色を自動取得しています':next.reader?.message||'Among Usの起動を待っています';
   const discordStatus=next.discord.status;
   $('#discord-status').textContent=demo?'デモ表示中':auth.busy?'接続しています':auth.needsAuthorization?'許可が必要です':discordStatus.startsWith('切断しました')?'切断しています':discordStatus.length>25?'接続を確認してください':discordStatus;
