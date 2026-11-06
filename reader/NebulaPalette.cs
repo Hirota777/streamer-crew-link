@@ -4,14 +4,20 @@ sealed class NebulaPalette : IDisposable
 {
     DataTarget? target;
     ClrRuntime? runtime;
+    LegacyDacTrust? legacyTrust;
     public record Shade(string Body,string Shadow,string Visor);
     public Dictionary<int,Shade> Read(int processId)
     {
-        target ??= DataTarget.AttachToProcess(processId, suspend:false);
+        target ??= DataTarget.AttachToProcess(processId, suspend:false,new DataTargetOptions{
+            VerifyDacOnWindows=true,
+            // All other files retain ClrMD's default signature verification.
+            DacSignatureVerificationOverride=path=>legacyTrust?.IsVerified(path)!=true
+        });
         if(runtime==null){
             var clr=target.ClrVersions.First();
             var dac=Path.Combine(Path.GetDirectoryName(clr.ModuleInfo.FileName)!,"mscordaccore.dll");
             if(!File.Exists(dac))throw new IOException("Matching local DAC is unavailable");
+            legacyTrust=LegacyDacTrust.TryOpen(clr.ModuleInfo.FileName,dac);
             runtime=clr.CreateRuntime(dac);
         }
         runtime.FlushCachedData();
@@ -31,5 +37,12 @@ sealed class NebulaPalette : IDisposable
         int Channel(string name){var f=color.ReadField<float>("<"+name+">k__BackingField");if(!float.IsFinite(f)||f<0||f>1)throw new IOException("Invalid color channel");return (int)Math.Round(f*255);}
         return $"#{Channel("R"):X2}{Channel("G"):X2}{Channel("B"):X2}";
     }
-    public void Dispose(){runtime?.Dispose();target?.Dispose();runtime=null;target=null;}
+    internal static string FailureMessage(Exception error)=>error.Message.Contains("not properly signed",StringComparison.OrdinalIgnoreCase)
+        ?"Nebulaの色取得を確認してください：診断ライブラリの署名またはバージョンが未対応です。"
+        :error.Message.Contains("palette is not loaded",StringComparison.OrdinalIgnoreCase)
+        ?"Nebulaの色情報の準備を待っています。ロビーに参加してください。"
+        :error.Message.Contains("palette layout",StringComparison.OrdinalIgnoreCase)
+        ?"Nebulaの色取得を確認してください：この色データ形式には未対応です。"
+        :"Nebulaの色取得を確認してください：診断情報を読み取れません。実行権限や対応バージョンを確認してください。";
+    public void Dispose(){runtime?.Dispose();target?.Dispose();legacyTrust?.Dispose();runtime=null;target=null;legacyTrust=null;}
 }

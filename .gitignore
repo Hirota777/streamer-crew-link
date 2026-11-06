@@ -5,6 +5,8 @@ data/
 reader/bin/
 reader/obj/
 reader/release/
+test/reader-trust/bin/
+test/reader-trust/obj/
 *.log
 *.bin
 .env

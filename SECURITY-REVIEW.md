@@ -48,3 +48,16 @@ Discordの一般公開向けRPC承認は未完了です。許可されたテス�
 - [参照したSNR色ロード処理](https://github.com/SuperNewRoles/SuperNewRoles/blob/39ccfb5d7e9be38e5576b6faa976a463b8426d14/SuperNewRoles/CustomCosmetics/CustomColors.cs)
 
 SNRのソースやDLL、色CSVは配布物に同梱しません。利用者がインストール済みのファイルを読み取ります。
+
+## 0.7.2の互換処理の追加（2026-11-07）
+
+Nebulaが使用するMicrosoft .NET 6.0.7の正規DACには、ClrMD 4が要求するDAC専用の証明書用途OIDがありません。Windowsの通常署名は有効でも拒否されるため、次の完全一致ペアだけを別途識別します。検査対象は既存のゲーム付属ファイルです。
+
+- coreclr.dll SHA256: `04377968C540F704AAE92ECB0EC9BBFD5FDDFE226DFCA30AA3EEB52006A44FD8`
+- mscordaccore.dll SHA256: `DD2DA6E841155C8869A68270D951246CBFE67943BB71082121FC5EA3D5439661`
+
+基準はMicrosoft.NETCore.App.Runtime.win-x64 6.0.7のNuGetパッケージから取得し、`dotnet nuget verify --all`でMicrosoftの作成者署名・NuGetのリポジトリ署名を検証済みです。両ファイルのハッシュが一致した場合だけ互換経路を使います。実行基盤とDACを読取専用で開き、診断ランタイムを閉じるまで書込・差替えを禁止したまま保持します。他のファイルは既定の署名検証を受け、全面的な署名検証の無効化は行いません。実行時にDLLをダウンロードすることや、ゲームフォルダーへの追加・置換もありません。
+
+実ファイルで、正規ペアの受理、改変DACの拒否、別実行基盤との組み合わせの拒否、検証済みファイルの書込拒否を確認しました。起動中のNebulaから32要素の色配列を実際に読み取れています。
+
+参照：[Microsoft公式パッケージ](https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.win-x64/6.0.7)、[ClrMDのセキュリティ構成](https://github.com/microsoft/clrmd/blob/main/SECURE-CONFIGURATION.md)。

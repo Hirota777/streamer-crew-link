@@ -56,7 +56,8 @@ while(true){
         if(!Native.IsWow64Process(handle,out var wow))throw new IOException();is64=!wow;
     }
     Dictionary<int,NebulaPalette.Shade> palette=new();
-    if(nebula){try{palette=nebulaPalette.Read(game.Id);}catch{nebulaPalette.Dispose();}}
+    string paletteFailure="";
+    if(nebula){try{palette=nebulaPalette.Read(game.Id);}catch(Exception error){paletteFailure=NebulaPalette.FailureMessage(error);nebulaPalette.Dispose();}}
     var mem=new Memory(handle,is64);var list=mem.Chain(module,profile.GetProperty("AllPlayerPtrOffsets"));
     if(list==0){Status("waiting","ゲームに接続しました。ロビーへの参加を待っています");Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,modVersion="外部読取",players=Array.Empty<object>()}}));await Task.Delay(600);continue;}
     var count=mem.Int(list+profile.GetProperty("PlayerCountOffsets")[0].GetInt32());
@@ -87,7 +88,7 @@ while(true){
         return new {key="name:"+p.name,name=p.name,colorId=p.colorId,color=dynamicColor?shade?.Body??"#8794a3":p.colorId<colors.Length?colors[p.colorId]:"#8794a3",shadowColor=shade?.Shadow,visorColor=shade?.Visor,colorSource=nebula?"nebula":snr?"snr":"vanilla",colorKnown=dynamicColor?shade!=null:p.colorId<colors.Length,stable=false};
     }).ToArray();
     Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,modVersion=nebula?"Nebula 動的カラー":snr?"SNR 追加カラー":"通常カラー",players=result}}));
-    Status("connected",duplicates.Count>0?"同名の参加者がいます。名前を一意にしてください。":nebula&&palette.Count==0?"Nebulaの色取得を待っています（標準色への置き換えは行いません）":snr&&snrColors.Count==0?"SNRの追加色データを確認できません。このSNRバージョンの対応確認が必要です。":"外部読取で接続中（ゲームへの追加導入なし）");
+    Status("connected",duplicates.Count>0?"同名の参加者がいます。名前を一意にしてください。":nebula&&palette.Count==0?paletteFailure.Length>0?paletteFailure:"Nebulaの色取得を待っています（標準色への置き換えは行いません）":snr&&snrColors.Count==0?"SNRの追加色データを確認できません。このSNRバージョンの対応確認が必要です。":"外部読取で接続中（ゲームへの追加導入なし）");
  }catch(UnauthorizedAccessException){Status("error","ゲーム情報を読み取れません。ゲームとアプリの実行権限を確認してください。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}
  catch{Status("waiting","ゲーム情報の更新を待っています。ロビー参加後も続く場合は対応確認が必要です。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}
  await Task.Delay(600);
@@ -118,7 +119,7 @@ static class ReaderSelfTest {
    if(m.Chain(root.ToInt64(),offsets.RootElement)!=text.ToInt64())throw new Exception("pointer chain");
    if(m.String(text.ToInt64(),16,20)!="テスト")throw new Exception("UTF16 name");
    Marshal.WriteInt32(text,16,9999);try{m.String(text.ToInt64(),16,20);throw new Exception("bounds check");}catch(IOException){}
-   Console.WriteLine("Reader self-test passed: read-only handle, pointer chain, UTF16 names, invalid length rejected.");SnrPalette.SelfTest();
+   Console.WriteLine("Reader self-test passed: read-only handle, pointer chain, UTF16 names, invalid length rejected.");SnrPalette.SelfTest();LegacyDacTrust.SelfTest();
   }finally{Native.CloseHandle(h);Marshal.FreeHGlobal(root);Marshal.FreeHGlobal(child);Marshal.FreeHGlobal(text);}
  }
 }
