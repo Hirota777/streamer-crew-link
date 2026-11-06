@@ -8,11 +8,14 @@ if (args.Contains("--self-test")) { ReaderSelfTest.Run(); return; }
 
 // External, read-only capture. This process never injects code, writes memory,
 // or changes files in the game's directory.
-var profiles = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"profiles.json")));
 if(args.Length==2&&args[0]=="--palette-probe"){using var probe=new NebulaPalette();Console.WriteLine(JsonSerializer.Serialize(probe.Read(int.Parse(args[1]))));return;}
+if(args.Length==2&&args[0]=="--snr-palette-probe"){Console.WriteLine(JsonSerializer.Serialize(SnrPalette.Read(args[1])));return;}
+var profiles = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"profiles.json")));
 Process? game = null;
 using var nebulaPalette=new NebulaPalette();
 bool nebula=false;
+bool snr=false;
+Dictionary<int,NebulaPalette.Shade> snrColors=new();
 IntPtr handle = IntPtr.Zero;
 JsonElement profile = default;
 long module = 0;
@@ -42,6 +45,11 @@ while(true){
             }
         }
         nebula=File.Exists(Path.Combine(Path.GetDirectoryName(assembly.FileName)!,"BepInEx","nebula","Nebula.dll"));
+        var pluginDirectory=Path.Combine(Path.GetDirectoryName(assembly.FileName)!,"BepInEx","plugins");
+        var snrFiles=Directory.Exists(pluginDirectory)?Directory.EnumerateFiles(pluginDirectory,"SuperNewRoles.dll",new EnumerationOptions{RecurseSubdirectories=true,MaxRecursionDepth=4,AttributesToSkip=FileAttributes.ReparsePoint}).Take(2).ToArray():Array.Empty<string>();
+        snr=snrFiles.Length>0;snrColors.Clear();
+        if(snrFiles.Length==1){try{snrColors=SnrPalette.Read(snrFiles[0]);}catch{}}
+        if(snr&&nebula){Status("unsupported","NebulaとSNRの同時導入には対応していません。");while(!game.HasExited)await Task.Delay(2000);continue;}
         version=profile.GetProperty("Description").GetString()??"";module=assembly.BaseAddress.ToInt64();
         handle=Native.OpenProcess(0x0010|0x0400,false,game.Id);
         if(handle==IntPtr.Zero)throw new UnauthorizedAccessException();
@@ -74,11 +82,12 @@ while(true){
     if(mem.Int(list+profile.GetProperty("PlayerCountOffsets")[0].GetInt32())!=count)throw new IOException();
     var duplicates=players.GroupBy(p=>p.name).Where(g=>g.Count()>1).Select(g=>g.Key).ToHashSet();
     var result=players.Where(p=>!duplicates.Contains(p.name)).Select(p=>{
-        palette.TryGetValue(p.playerId,out var shade);
-        return new {key="name:"+p.name,name=p.name,colorId=p.colorId,color=nebula?shade?.Body??"#8794a3":p.colorId<colors.Length?colors[p.colorId]:"#8794a3",shadowColor=shade?.Shadow,visorColor=shade?.Visor,colorSource=nebula?"nebula":"vanilla",colorKnown=nebula?shade!=null:p.colorId<colors.Length,stable=false};
+        var dynamicColor=nebula||(snr&&p.colorId>=colors.Length);
+        (nebula?palette:snrColors).TryGetValue(nebula?p.playerId:p.colorId,out var shade);
+        return new {key="name:"+p.name,name=p.name,colorId=p.colorId,color=dynamicColor?shade?.Body??"#8794a3":p.colorId<colors.Length?colors[p.colorId]:"#8794a3",shadowColor=shade?.Shadow,visorColor=shade?.Visor,colorSource=nebula?"nebula":snr?"snr":"vanilla",colorKnown=dynamicColor?shade!=null:p.colorId<colors.Length,stable=false};
     }).ToArray();
-    Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,modVersion=nebula?"Nebula 動的カラー":"通常カラー",players=result}}));
-    Status("connected",duplicates.Count>0?"同名の参加者がいます。名前を一意にしてください。":nebula&&palette.Count==0?"Nebulaの色取得を待っています（標準色への置き換えは行いません）":"外部読取で接続中（ゲームへの追加導入なし）");
+    Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,modVersion=nebula?"Nebula 動的カラー":snr?"SuperNewRoles 追加カラー":"通常カラー",players=result}}));
+    Status("connected",duplicates.Count>0?"同名の参加者がいます。名前を一意にしてください。":nebula&&palette.Count==0?"Nebulaの色取得を待っています（標準色への置き換えは行いません）":snr&&snrColors.Count==0?"SNRの追加色データを確認できません。このSNRバージョンの対応確認が必要です。":"外部読取で接続中（ゲームへの追加導入なし）");
  }catch(UnauthorizedAccessException){Status("error","ゲーム情報を読み取れません。ゲームとアプリの実行権限を確認してください。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}
  catch{Status("waiting","ゲーム情報の更新を待っています。ロビー参加後も続く場合は対応確認が必要です。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}
  await Task.Delay(600);
@@ -109,7 +118,7 @@ static class ReaderSelfTest {
    if(m.Chain(root.ToInt64(),offsets.RootElement)!=text.ToInt64())throw new Exception("pointer chain");
    if(m.String(text.ToInt64(),16,20)!="テスト")throw new Exception("UTF16 name");
    Marshal.WriteInt32(text,16,9999);try{m.String(text.ToInt64(),16,20);throw new Exception("bounds check");}catch(IOException){}
-   Console.WriteLine("Reader self-test passed: read-only handle, pointer chain, UTF16 names, invalid length rejected.");
+   Console.WriteLine("Reader self-test passed: read-only handle, pointer chain, UTF16 names, invalid length rejected.");SnrPalette.SelfTest();
   }finally{Native.CloseHandle(h);Marshal.FreeHGlobal(root);Marshal.FreeHGlobal(child);Marshal.FreeHGlobal(text);}
  }
 }

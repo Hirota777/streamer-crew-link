@@ -27,7 +27,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
     const rows=links.map(l=>{const player=g?.players.find(p=>p.key===l.gameKey),member=members.find(m=>m.id===l.discordId);return {...l,player:player??null,member:member??null};});
     return {mode,reader,game:{online,version:g?.version??'',modVersion:g?.modVersion??'',players:g?.players??[]},discord:{status:isDemo?'デモ表示中':discord.status,channel:isDemo?'表示確認用':discord.channel?.name??'',members,auth:discord.info()},preset, presets:store.data.presets.map(p=>({id:p.id,name:p.name})),rows,overlayUrl:`http://127.0.0.1:${port}/overlay`,unmapped:g?.players.filter(p=>!links.some(l=>l.gameKey===p.key)).length??0};
   }
-  function broadcast(){const payload='data: '+JSON.stringify(snapshot())+'\n\n';for(const s of streams)s.write(payload);}
+  function broadcast(){const payload='data: '+JSON.stringify(snapshot())+'\n\n';for(const s of streams){if(s.writableLength>512*1024){streams.delete(s);s.destroy();}else s.write(payload);}}
   discord.on('change',broadcast);
   function stopDemo(){clearInterval(demoTimer);demoTimer=null;demoMembers=[];mode='live';}
   function startDemo(){stopDemo();mode='demo';demoMembers=demoGame.players.map((p,i)=>({id:'demo-user-'+i,name:['Shiro','Kuro','Momo','Sora','Ao','Murasaki','Kiiro','Midori','Aka','Lime','Rose'][i],avatar:null,speaking:false}));demoTimer=setInterval(()=>{demoMembers.forEach((m,i)=>m.speaking=i===Math.floor(Date.now()/1100)%11);broadcast();},400);}
@@ -35,11 +35,17 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
   function equal(a,b){return typeof a==='string'&&Buffer.byteLength(a)===Buffer.byteLength(b)&&timingSafeEqual(Buffer.from(a),Buffer.from(b));}
   async function body(req){let b='';for await(const c of req){b+=c;if(Buffer.byteLength(b)>128*1024)throw Error('送信データが大きすぎます。');}return JSON.parse(b||'{}');}
   function json(res,value,status=200){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
-  const server=http.createServer(async(req,res)=>{
+  const server=http.createServer({requestTimeout:15000,headersTimeout:10000,maxHeaderSize:16384},async(req,res)=>{
     try{
       if(!['127.0.0.1:'+port,'localhost:'+port].includes(req.headers.host)){json(res,{error:'接続先が不正です。'},403);return;}
       const url=new URL(req.url,`http://127.0.0.1:${port}`),route=url.pathname;
       res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');
+      res.setHeader('Cross-Origin-Resource-Policy','same-origin');res.setHeader('X-Frame-Options','DENY');
+      // Browser OAuth redirects may originate at Discord; other cross-site
+      // requests must not access local participant data or the management UI.
+      if(!['/oauth/callback','/oauth/complete'].includes(route)&&(
+        (req.headers.origin&&!['http://127.0.0.1:'+port,'http://localhost:'+port].includes(req.headers.origin))||
+        req.headers['sec-fetch-site']==='cross-site')){json(res,{error:'接続元が不正です。'},403);return;}
       if(req.method==='POST'){
         if(!equal(req.headers['x-app-token'],csrf)){json(res,{error:'管理画面を再読み込みしてください。'},403);return;}
         if(req.headers.origin&&!['http://127.0.0.1:'+port,'http://localhost:'+port].includes(req.headers.origin)){json(res,{error:'接続元が不正です。'},403);return;}
@@ -73,7 +79,8 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
       if(route==='/api/bootstrap'){json(res,{token:csrf,...snapshot()});return;}
       if(route==='/api/state'){json(res,snapshot());return;}
       if(route==='/api/events'){
-        res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});res.write('data: '+JSON.stringify(snapshot())+'\n\n');streams.add(res);req.on('close',()=>streams.delete(res));return;
+        if(streams.size>=32){json(res,{error:'接続数が多すぎます。不要な表示画面を閉じてください。'},429);return;}
+        res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});res.write('data: '+JSON.stringify(snapshot())+'\n\n');streams.add(res);res.on('close',()=>streams.delete(res));return;
       }
       if(/^\/icons\/au(?:red|blue|green|pink|orange|yellow|black|white|purple|brown|cyan|lime|maroon|rose|banana|gray|tan|coral)(?:dead)?\.png$/.test(route)){
         res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'});res.end(await readFile(path.join(here,'public',route.slice(1))));return;
@@ -81,7 +88,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
       const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css'};
       if(!routes[route]){json(res,{error:'見つかりません。'},404);return;}
       const types={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
-      res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.discordapp.com; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'");
+      res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.discordapp.com; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
       res.writeHead(200,{'Content-Type':types[path.extname(routes[route])]+'; charset=utf-8','Cache-Control':'no-cache'});res.end(await readFile(path.join(here,'public',routes[route])));
     }catch(e){json(res,{error:e.message||'処理に失敗しました。'},400);}
   });

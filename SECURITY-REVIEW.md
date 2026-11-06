@@ -1,0 +1,50 @@
+# Streamer crew link 0.6.0 — セキュリティ点検
+
+確認日：2026-11-07。対象：アプリのソース、ローカルHTTP、Discord認証、外部読取、依存関係、Windows配布物。独立した第三者による侵入試験・安全性認証ではありません。
+
+## 修正した内容
+
+| 項目 | 対応 |
+| --- | --- |
+| 外部サイトからのローカル画面・情報への要求 | OriginとFetch Metadataを確認し、外部サイトからの要求を拒否。OAuth戻り先だけは例外とし、state・PKCE・有効期限で検証 |
+| 画面の埋め込みによる誤操作 | CSP frame-ancestorsとX-Frame-Optionsで禁止。OBSブラウザーソースのトップレベル表示は継続 |
+| 表示接続による資源消費 | 表示用接続を32本に制限し、読み出しが滞った接続の送信待ち量を制限。HTTPヘッダーと受信時間にも上限 |
+| 作成用依存ライブラリ | glob 13.0.6、minimatch 10.2.6の既知の問題を解消するため、14.0.2／11.0.1に固定。親パッケージを含むnpm auditの5警告は更新後0件 |
+| アプリ実行基盤 | Electron 45.2.1から45.2.3へ更新 |
+
+## 確認した既存の保護
+
+- HTTP待受は127.0.0.1のみ。Hostを限定し、DNSリバインディングを想定した偽Hostの要求を拒否。
+- 設定変更には起動ごとのランダムトークンが必要。外部Originの変更要求も拒否。
+- Discord認証はAuthorization Code + PKCE S256、ランダムstate、3分、1回限り。Client Secretを同梱しない。
+- 保存トークンはWindowsのsafeStorageで暗号化。API・OBS・配布ZIPにトークンを含めない。
+- Electronはsandbox/contextIsolation有効、nodeIntegration無効。外部ページへの遷移と権限要求を拒否。
+- クリップボード連携は正規の管理ウィンドウから固定のOBS用URLを書き込む操作だけ。読取や任意文字列の書込を画面へ公開しない。
+- 名前はテキストとして描画し、SVGへ渡す色は6桁の16進色に限定。不正なタグ・属性の混入を拒否。
+- ゲームは既知のGameAssemblyハッシュと構造だけを読み取り、プロセス書込・コード注入・一時停止・ゲームファイル変更を行わない。
+- SNRのDLLはPEメタデータと埋め込みCSVだけを解析。Assembly.Loadなどによるコード実行を行わない。サイズ、版、数、重複、色成分を検査。ディレクトリ探索は深さを制限し再解析ポイントを除外。
+- Nebula診断ではゲームに付属するローカルの一致する診断ライブラリを利用し、診断データを送信しない。
+- 配布はソースの許可リストから作成し、個人設定・認証・ログ・開発用テスト・個人パスを検査して除外。ZIPのSHA256を添付。
+
+## 検証
+
+- Node自動テスト39件：外部Origin／Fetch Metadata／偽Host／未認証操作／秘密情報非公開／表示接続制限／OAuth／色の入力検証／切断と再接続など。
+- 読取プログラム自己診断：読取専用ハンドル、ポインター、文字列の長さ制限、SNRの順序・BOM・不正色の拒否。
+- SNR公式3.3.0.0 DLLから64色を取得。先頭の白、本体・影の異なる色、末尾のボルドーまで検査。
+- npm audit：開発依存を含め既知の報告0件。dotnetの推移的依存の脆弱性検査：報告なし。報告データベース時点の結果であり、未知の問題がないことを保証しない。
+
+## 残る制約
+
+同じWindowsユーザーで動く悪意あるプログラムから、表示情報や保存認証を完全に隔離するものではありません。ゲームとMOD、ローカルの診断ライブラリ自体の安全性は点検対象外です。配布EXEはコード署名されていません。正規の非公開リリースとSHA256を確認してください。
+
+Discordの一般公開向けRPC承認は未完了です。許可されたテスター向けです。実際のSNR・Nebulaロビー、別PCでの長時間配信は未検証です。SNRは3.3.0.0の色形式を確認しており、ゲーム本体の版も同梱対応表に一致する必要があります。
+
+## 参照
+
+- [Electron公式リリース](https://releases.electronjs.org/release?channel=stable)
+- [globの勧告](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)
+- [minimatchの勧告](https://github.com/advisories/GHSA-g3hv-75wg-m249)
+- [SNR公式3.3.0.0](https://github.com/SuperNewRoles/SuperNewRoles/releases/tag/3.3.0.0)
+- [参照したSNR色ロード処理](https://github.com/SuperNewRoles/SuperNewRoles/blob/39ccfb5d7e9be38e5576b6faa976a463b8426d14/SuperNewRoles/CustomCosmetics/CustomColors.cs)
+
+SNRのソースやDLL、色CSVは配布物に同梱しません。利用者がインストール済みのファイルを読み取ります。
