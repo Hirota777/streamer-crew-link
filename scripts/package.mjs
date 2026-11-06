@@ -17,5 +17,6 @@ await fs.copyFile(path.join(root,'reader','release','CrewLink.Reader.exe'),path.
 for(const file of ['profiles.json','LICENSE-AmongUsCapture.txt'])await fs.copyFile(path.join(root,'reader',file),path.join(reader,file));
 await fs.copyFile(path.join(root,'third_party','dotnet','LICENSE.txt'),path.join(reader,'LICENSE-dotnet.txt'));
 await fs.copyFile(path.join(root,'third_party','dotnet','ThirdPartyNotices.txt'),path.join(reader,'THIRD-PARTY-NOTICES-dotnet.txt'));
+await fs.copyFile(path.join(root,'reader','THIRD-PARTY-NOTICES-reader.md'),path.join(reader,'THIRD-PARTY-NOTICES-reader.md'));
 const results=await packager({dir:staging,out:path.join(root,'dist'),name:'Streamer crew link',platform:'win32',arch:'x64',electronVersion:'45.2.1',asar:true,prune:false,overwrite:true,icon:path.join(root,'assets','app.ico'),extraResource:[reader],win32metadata:{ProductName:'Streamer crew link',CompanyName:'Streamer crew link',FileDescription:'Among Us streaming companion'}});
 for(const output of results){for(const file of ['README.md','PRIVACY.md','DISTRIBUTION.md'])await fs.copyFile(path.join(root,file),path.join(output,file));console.log(output);}

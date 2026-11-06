@@ -2,7 +2,7 @@
 
 ## 配布対象
 
-`Streamer-crew-link-0.4.0-Windows-x64-beta.zip` をそのまま渡してください。
+`Streamer-crew-link-0.5.0-Windows-x64-beta.zip` をそのまま渡してください。
 デスクトップ上の使用中フォルダー、AppDataの設定フォルダー、認証ファイル、Client Secretを配布物へ追加しないでください。
 実行環境、ゲーム読取プログラム、表示素材、依存コンポーネントのライセンスを同梱しています。
 アプリはWindows x64向けです。Node.jsや.NETを利用者が別途インストールする必要はありません。
@@ -36,3 +36,6 @@ Windowsのコード署名証明書による署名は付けていません。
 
 公式RPC資料：https://docs.discord.com/developers/topics/rpc
 公式公開クライアント資料：https://discord.com/developers/docs/social-sdk/classdiscordpp_1_1Client.html
+
+## 0.5.0の変更
+初期ウィンドウを1050×760に縮小しました。NebulaはプレイヤーIDに紐づく本体・影・バイザーの動的RGBを読み取って表示します。取得できない場合は標準色へ置き換えず、取得待ちを表示します。ゲームフォルダーへの追加導入はありません。実際のNebulaロビーでの確認は未実施です。
