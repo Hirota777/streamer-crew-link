@@ -1,6 +1,6 @@
 import {appendCharacter,statusBadgeSvg} from './icons.js';
 export function renderCrew(target,state){
-  const s=state.preset.settings;target.style.setProperty('--crew-size',s.size+'px');target.style.setProperty('--crew-gap',s.gap+'px');
+  const s=state.preset.settings;target.style.setProperty('--crew-size',s.size+'px');target.style.setProperty('--crew-gap',s.gap+'px');target.style.setProperty('--name-size',(s.nameSize??12)+'px');
   target.style.setProperty('--character-scale',String((s.characterScale??100)/100));target.style.setProperty('--badge-ratio',String((s.badgeSize??42)/100));target.classList.toggle('vertical',s.orientation==='vertical');
   const rows=state.rows.filter(r=>r.visible&&r.player&&r.member);
   const renderKey=JSON.stringify([s,rows.map(r=>({gameKey:r.gameKey,label:r.label,player:r.player,member:{id:r.member.id,name:r.member.name,avatar:r.member.avatar}}))]);

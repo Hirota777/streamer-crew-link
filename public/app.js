@@ -1,12 +1,9 @@
 import {renderCrew} from './render.js';
 import {appendCharacter} from './icons.js';
-import {connectionAdvice,preflight} from './readiness.js';
 const $=selector=>document.querySelector(selector);
 let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,editRevision=0,lastKey='',authUiSaved;
-let obsConfirmed=false,obsSignature='',appOnline=true;
-const measureHost=document.createElement('div');measureHost.className='obs-measure-host';measureHost.setAttribute('aria-hidden','true');const measureCrew=document.createElement('div');measureCrew.className='crew-row';measureHost.append(measureCrew);document.body.append(measureHost);
 const views=['preview','mapping','connections'];
-const settingKeys=['size','gap','characterScale','badgeSize','orientation','showStatus','showNames','dimIdle'];
+const settingKeys=['size','gap','characterScale','badgeSize','nameSize','orientation','showStatus','showNames','dimIdle'];
 for(const node of document.querySelectorAll('[data-character]'))appendCharacter(node,{color:node.dataset.character,colorKnown:true,lifeState:'alive'});
 function openView(id,{focus=false}={}){
   if(!views.includes(id))id='preview';
@@ -31,8 +28,8 @@ window.addEventListener('hashchange',()=>openView(location.hash.slice(1).replace
 openView(location.hash.slice(1).replace(/^view-/,''));
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,4500);}
 async function post(url,data){const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify(data)});const result=await response.json();if(!response.ok)throw Error(result.error);return result;}
-function settings(){return {size:Number($('#size').value),gap:Number($('#gap').value),characterScale:Number($('#characterScale').value),badgeSize:Number($('#badgeSize').value),orientation:$('#orientation').value,showStatus:$('#showStatus').checked,showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked};}
-function updateOutputs(){$('#size-value').textContent=$('#size').value+' px';$('#gap-value').textContent=$('#gap').value+' px';$('#characterScale-value').textContent=$('#characterScale').value+' %';$('#badgeSize-value').textContent=$('#badgeSize').value+' %';}
+function settings(){return {size:Number($('#size').value),gap:Number($('#gap').value),characterScale:Number($('#characterScale').value),badgeSize:Number($('#badgeSize').value),nameSize:Number($('#nameSize').value),orientation:$('#orientation').value,showStatus:$('#showStatus').checked,showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked};}
+function updateOutputs(){$('#size-value').textContent=$('#size').value+' px';$('#gap-value').textContent=$('#gap').value+' px';$('#characterScale-value').textContent=$('#characterScale').value+' %';$('#badgeSize-value').textContent=$('#badgeSize').value+' %';$('#nameSize-value').textContent=$('#nameSize').value+' px';}
 function syncSettings(){for(const [key,value]of Object.entries(state.preset.settings)){const element=$('#'+key);if(element.type==='checkbox')element.checked=value;else element.value=value;}updateOutputs();}
 function fitPreview(){const viewport=$('#preview-viewport'),crew=$('#preview-crew');if(viewport.classList.contains('actual'))return;if(!viewport.clientWidth||!crew.offsetWidth)return;const scale=Math.min(1,(viewport.clientWidth-40)/crew.offsetWidth,(viewport.clientHeight-34)/Math.max(1,crew.offsetHeight));crew.style.setProperty('--preview-scale',String(scale));$('#preview-scale-label').hidden=!crew.children.length||scale>=.99;}
 new ResizeObserver(fitPreview).observe($('#preview-viewport'));
@@ -43,41 +40,8 @@ function renderPreview(){
   $('#preview-viewport').classList.toggle('portrait',settings().orientation==='vertical');
   $('#preview-empty').hidden=count>0;
   const badge=$('#preview-mode');badge.textContent=state.mode==='demo'?'デモ表示':dirty||settingsDirty?'未保存のプレビュー':'本番表示';badge.classList.toggle('demo',state.mode==='demo');
-  updateReadiness();
   fitPreview();
 }
-function obsSize(rows,options){
-  renderCrew(measureCrew,{rows,preset:{settings:options}});
-  const rect=measureCrew.getBoundingClientRect();let right=rect.right,bottom=rect.bottom;
-  for(const node of measureCrew.querySelectorAll('.crew-item,.character,.avatar-wrap,.crew-name,.state-badge')){const box=node.getBoundingClientRect();right=Math.max(right,box.right);bottom=Math.max(bottom,box.bottom);}
-  return {width:Math.max(120,Math.ceil((right-rect.left+60)/20)*20),height:Math.max(120,Math.ceil((bottom-rect.top+60)/20)*20)};
-}
-function runAdvice(target){
-  if(target==='mapping')openView('mapping');
-  else if(target==='save'){openView('preview');$('#save').focus();}
-  else if(target==='obs'){openView('preview');$('#obs-confirmed').scrollIntoView({block:'center'});$('#obs-confirmed').focus();}
-  else{openView('connections');if(target==='versions'){$('#supported-versions').parentElement.open=true;$('#supported-versions').focus();}else if(target==='channel'){$('#discord-setup').open=true;$('#discord-form').elements.channelId.focus();}else if(target==='authorize'){$(state.discord.auth.saved&&!state.discord.auth.needsAuthorization?'#reconnect-discord':'#connect-discord').focus();}else if(target==='reconnect')$('#reconnect-discord').focus();}
-}
-function updateReadiness(){
-  if(!state)return;
-  const pending=dirty||settingsDirty,demo=state.mode==='demo';
-  const signature=JSON.stringify([state.mode,state.preset.id,state.preset.settings,state.rows.filter(r=>r.visible&&r.player&&r.member).map(r=>[r.gameKey,r.discordId,r.label||r.member.name,r.player.colorKnown!==false]),state.game.online,state.discord.status==='接続中']);
-  if(signature!==obsSignature){obsSignature=signature;obsConfirmed=false;}
-  $('#obs-confirmed').checked=obsConfirmed;$('#obs-confirmed').disabled=demo||pending||!appOnline||!state.rows.some(r=>r.visible&&r.player&&r.member);
-  const saved=obsSize(state.rows,state.preset.settings),previewRows=demo?state.rows:draft.map(l=>({...l,player:state.game.players.find(p=>p.key===l.gameKey),member:state.discord.members.find(m=>m.id===l.discordId)}));
-  const proposed=pending?obsSize(previewRows,settings()):saved;
-  $('#obs-dimensions').textContent='幅 '+saved.width+' × 高さ '+saved.height+' px · 透明';
-  $('#obs-size-title').textContent=(demo?'デモのOBSサイズ':'OBSの推奨サイズ')+'：幅 '+saved.width+' × 高さ '+saved.height+' px';
-  $('#obs-size-note').textContent=pending?'未保存のプレビューは幅 '+proposed.width+' × 高さ '+proposed.height+' px。保存後、このサイズをOBSに設定してください。':!state.rows.some(r=>r.visible&&r.player&&r.member)?'メンバーが表示されると、人数・並べ方・大きさから再計算します。':'OBSのブラウザーソースの「幅」「高さ」に設定してください。人数や大きさが変わると推奨値も変わります。';
-  const result=preflight(state,{pending,obsConfirmed:obsConfirmed&&appOnline});
-  $('#preflight-summary').textContent=!appOnline?'アプリとの接続を確認してください':demo?'デモ中・本番は未確認':result.ready?'確認完了・配信の準備ができています':result.done+' / '+result.checks.length+' 項目を確認済み';
-  $('#preflight').classList.toggle('ready',result.ready&&appOnline);
-  const signatureList=JSON.stringify([result.checks,appOnline]);
-  if($('#preflight-list').dataset.key!==signatureList){$('#preflight-list').dataset.key=signatureList;$('#preflight-list').replaceChildren(...result.checks.map(c=>{const li=document.createElement('li');li.className=c.ok&&appOnline?'passed':'pending';const text=document.createElement('div'),title=document.createElement('strong'),detail=document.createElement('span');title.textContent=(c.ok&&appOnline?'✓ ':'○ ')+c.label;detail.textContent=appOnline?c.detail:'アプリとの接続が切れています。起動状態を確認してください。';text.append(title,detail);li.append(text);if(!c.ok&&appOnline){const button=document.createElement('button');button.className='text-button';button.textContent='確認する →';button.onclick=()=>runAdvice(c.target);li.append(button);}return li;}));}
-  const advice=connectionAdvice(state),key=JSON.stringify([advice,state.mode]);
-  if($('#connection-advice').dataset.key!==key){$('#connection-advice').dataset.key=key;$('#connection-advice').replaceChildren(...Object.entries(advice).map(([type,a])=>{const card=document.createElement('article'),title=document.createElement('strong'),detail=document.createElement('p');card.className=a.ok?'passed':'pending';title.textContent=(type==='game'?'ゲーム：':'Discord：')+(demo?'デモ中・実接続は未確認です':a.title);detail.textContent=demo?'本番表示に戻してから接続状態を確認してください。':a.detail;card.append(title,detail);if(a.action&&!demo){const button=document.createElement('button');button.className='text-button';button.textContent=a.action+' →';button.onclick=()=>runAdvice(a.target);card.append(button);}return card;}));}
-}
-$('#obs-confirmed').onchange=()=>{obsConfirmed=$('#obs-confirmed').checked;updateReadiness();};
 function updateSaveState(){
   const pending=dirty||settingsDirty,demo=state?.mode==='demo';
   $('#save').disabled=demo||!pending||saving;$('#discard').hidden=!pending||demo;$('#discard').disabled=saving;
@@ -116,7 +80,7 @@ function table(){
   }));
 }
 function receive(next){
-  appOnline=true;const changed=state?.preset.id!==next.preset.id,modeChanged=state?.mode!==next.mode;state=next;
+  const changed=state?.preset.id!==next.preset.id,modeChanged=state?.mode!==next.mode;state=next;
   if(changed||modeChanged){dirty=false;settingsDirty=false;lastKey='';}
   if(!dirty)draft=structuredClone(next.mode==='demo'?next.rows.map(({gameKey,discordId,label,visible})=>({gameKey,discordId,label,visible})):next.preset.links);
   if(!settingsDirty)syncSettings();
@@ -165,4 +129,4 @@ $('#disconnect-discord').onclick=async()=>{try{receive(await post('/api/discord/
 $('#reconnect-discord').onclick=async()=>{if(dirty||settingsDirty){toast('変更を保存するか、元に戻してから接続してください。');return;}try{receive(await post('/api/discord/reconnect',{}));}catch(error){toast(error.message);}};
 $('#forget-discord').onclick=async()=>{try{receive(await post('/api/discord/forget',{}));$('#discord-form').reset();toast('このPCに保存したDiscordの認証を削除しました。');}catch(error){toast(error.message);}};
 window.addEventListener('beforeunload',event=>{if(state?.mode!=='demo'&&(dirty||settingsDirty)){event.preventDefault();event.returnValue='';}});
-try{const bootstrap=await(await fetch('/api/bootstrap')).json();token=bootstrap.token;receive(bootstrap);const stream=new EventSource('/api/events');stream.onmessage=event=>receive(JSON.parse(event.data));stream.onerror=()=>{appOnline=false;obsConfirmed=false;updateReadiness();$('#notice').hidden=false;$('#notice').textContent='アプリとの接続が切れました。起動状態を確認してください。';};}catch{toast('アプリに接続できません。起動し直してください。');}
+try{const bootstrap=await(await fetch('/api/bootstrap')).json();token=bootstrap.token;receive(bootstrap);const stream=new EventSource('/api/events');stream.onmessage=event=>receive(JSON.parse(event.data));stream.onerror=()=>{$('#notice').hidden=false;$('#notice').textContent='アプリとの接続が切れました。起動状態を確認してください。';};}catch{toast('アプリに接続できません。起動し直してください。');}

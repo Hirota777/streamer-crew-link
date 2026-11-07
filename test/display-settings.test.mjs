@@ -7,13 +7,13 @@ import {colorIcon,templateIcon,statusBadgeSvg} from '../public/icons.js';
 
 test('縦横と独立したアイコン倍率を保存し、旧設定へ既定値を補う',async()=>{
  const dir=await mkdtemp(path.join(os.tmpdir(),'crew-display-'));try{
- const store=new Store(dir);await store.load();await store.save({links:[],settings:{orientation:'vertical',size:110,characterScale:150,badgeSize:65,showStatus:false}});
- const restored=new Store(dir);await restored.load();assert.equal(restored.current.settings.orientation,'vertical');assert.equal(restored.current.settings.characterScale,150);assert.equal(restored.current.settings.badgeSize,65);assert.equal(restored.current.settings.showStatus,false);
+ const store=new Store(dir);await store.load();await store.save({links:[],settings:{orientation:'vertical',size:110,characterScale:150,badgeSize:65,nameSize:28,showStatus:false}});
+ const restored=new Store(dir);await restored.load();assert.equal(restored.current.settings.orientation,'vertical');assert.equal(restored.current.settings.characterScale,150);assert.equal(restored.current.settings.badgeSize,65);assert.equal(restored.current.settings.showStatus,false);assert.equal(restored.current.settings.nameSize,28);assert.equal(cleanSettings({}).nameSize,12);
  assert.equal(cleanSettings({size:80}).orientation,'horizontal');assert.equal(cleanSettings({}).showStatus,true);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
 test('不正な並べ方やマーク倍率を拒否する',()=>{
- for(const settings of [{orientation:'url(evil)'},{badgeSize:Infinity},{badgeSize:81},{characterScale:49},{characterScale:'100'}])assert.throws(()=>cleanSettings(settings));
+ for(const settings of [{orientation:'url(evil)'},{badgeSize:Infinity},{badgeSize:81},{characterScale:49},{characterScale:'100'},{nameSize:7},{nameSize:41},{nameSize:NaN},{nameSize:'20'}])assert.throws(()=>cleanSettings(settings));
 });
 test('死亡と追放は同じDeadキャラクターで、Discordマークのみ異なる',()=>{
  const base={colorId:10,color:'#38FEDB',shadowColor:'#117F82',visorColor:'#95CADC'};
