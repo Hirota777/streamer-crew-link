@@ -14,3 +14,7 @@
 .crew-row:not(.vertical)>.crew-item{width:max(var(--crew-size,80px),calc(var(--crew-size,80px)*.72*var(--character-scale,1)))}
 
 body.overlay.overlay-preview{overflow:auto!important}
+
+/* Portrait labels overlap the lower edge of the Discord image. */
+.vertical .avatar-wrap .crew-name{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);width:115%;max-width:115%;min-width:0;padding:3px 2px 2px;text-align:center;line-height:1.25;z-index:5;background:linear-gradient(transparent,#0b131ed9);border-radius:0 0 6px 6px;text-shadow:0 1px 3px #000,0 0 3px #000}
+.vertical .avatar-wrap:has(.crew-name) .state-badge{bottom:16%;z-index:6}

@@ -12,7 +12,7 @@ export function renderCrew(target,state){
     avatarWrap.append(avatar);
     const badge=s.showStatus!==false?statusBadgeSvg(r.player.lifeState):null;
     if(badge){const mark=document.createElement('span');mark.className='state-badge';mark.setAttribute('role','img');mark.setAttribute('aria-label',r.player.lifeState==='exiled'?'投票で追放':'死亡');mark.innerHTML=badge;avatarWrap.append(mark);}
-    item.append(avatarWrap);if(s.showNames){const name=document.createElement('div');name.className='crew-name';name.textContent=r.label||r.member.name;item.append(name);}return item;
+    item.append(avatarWrap);if(s.showNames){const name=document.createElement('div');name.className='crew-name';name.textContent=r.label||r.member.name;name.title=name.textContent;(s.orientation==='vertical'?avatarWrap:item).append(name);}return item;
   }));return rows.length;
 }
 if(document.body.classList.contains('overlay')){
