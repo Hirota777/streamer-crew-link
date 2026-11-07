@@ -16,7 +16,7 @@ test('正しいstateだけを一度受け付け、認証コードとverifierを�
  assert.equal(f.callback(callback).status,303);const result=await pending;assert.equal(result.code,'one-use-code');assert.equal(createHash('sha256').update(result.verifier).digest('base64url'),opened.searchParams.get('code_challenge'));assert.equal(f.callback(callback).status,409);
 });
 test('許可拒否と接続中止はコード交換を実行せず終了する',async()=>{
- let url;const f=new OAuthFlow({application:APPLICATION,openExternal:async value=>url=new URL(value)});let pending=f.begin();const denied=new URL(APPLICATION.redirectUri);denied.search=new URLSearchParams({state:url.searchParams.get('state'),error:'access_denied'}).toString();f.callback(denied);await assert.rejects(pending,/キャンセル/);pending=f.begin();f.cancel();await assert.rejects(pending,/キャンセル/);
+ let url;const f=new OAuthFlow({application:APPLICATION,openExternal:async value=>url=new URL(value)});let pending=f.begin();const denied=new URL(APPLICATION.redirectUri);denied.search=new URLSearchParams({state:url.searchParams.get('state'),error:'access_denied'}).toString();f.callback(denied);await assert.rejects(pending,e=>e.diagnostic.stage==='authorization'&&e.diagnostic.code==='access_denied');pending=f.begin();f.cancel();await assert.rejects(pending,/キャンセル/);
 });
 test('公開クライアントのコード交換と更新にはClient Secretを送信しない',async()=>{
  const requests=[];const client=new Discord({authorize:async()=>({code:'test-code',verifier:'test-verifier'}),fetcher:async(_url,options)=>{requests.push(options.body);return {ok:true,json:async()=>({access_token:'new-token',refresh_token:'new-refresh',expires_in:3600})};}});

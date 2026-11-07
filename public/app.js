@@ -93,7 +93,7 @@ function receive(next){
   $('#discord-status').textContent=demo?'デモ表示中':auth.busy?'接続しています':auth.needsAuthorization?'許可が必要です':discordStatus.startsWith('切断しました')?'切断しています':discordStatus.length>25?'接続を確認してください':discordStatus;
   $('#discord-dot').classList.toggle('online',demo||discordStatus==='接続中');$('#voice-count').textContent=next.discord.members.length+'人';
   $('#discord-channel').textContent=next.discord.channel||(auth.busy?discordStatus:auth.needsAuthorization?'接続画面から許可をやり直してください':discordStatus.length>25?discordStatus:'サーバーの通話に参加してください');
-  $('#auth-summary').textContent=auth.needsAuthorization?'許可が無効になっています。Discordで許可をやり直してください。':auth.busy?'Discordへの接続を進めています。許可画面が開いた場合は内容を確認してください。':auth.saved?(auth.autoConnect?'認証を保存済みです。次回の起動時も自動接続します。':'認証を保存済みです。「保存した認証で接続」から再開できます。'):auth.storageAvailable?'初回だけブラウザーでDiscordの許可を行います。保存すると、次回から自動接続します。':'認証の保存はWindowsデスクトップ版で利用できます。';
+  $('#auth-summary').textContent=auth.failure?discordStatus:auth.needsAuthorization?discordStatus+' Discordで許可をやり直してください。':auth.busy?'Discordへの接続を進めています。許可画面が開いた場合は内容を確認してください。':auth.saved?(auth.autoConnect?'認証を保存済みです。次回の起動時も自動接続します。':'認証を保存済みです。「保存した認証で接続」から再開できます。'):auth.storageAvailable?'初回だけブラウザーでDiscordの許可を行います。保存すると、次回から自動接続します。':'認証の保存はWindowsデスクトップ版で利用できます。';
   $('#connect-discord').hidden=auth.saved&&!auth.needsAuthorization;$('#connect-discord').textContent=auth.needsAuthorization?'Discordの許可をやり直す':'Discordと連携・許可';
   $('#reconnect-discord').hidden=!auth.saved||auth.needsAuthorization;$('#reconnect-discord').textContent=auth.autoConnect?'再接続':'保存した認証で接続';
   $('#forget-discord').hidden=!auth.saved;$('#forget-discord').disabled=auth.busy;$('#disconnect-discord').hidden=!(auth.busy||auth.autoConnect||next.discord.channel||discordStatus==='通話への参加を待っています');
