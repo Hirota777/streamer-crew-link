@@ -21,7 +21,10 @@ test('外部読取、色の反映、保存、デモ分離、透明OBSページ',
  let s=await(await fetch(base+'/api/state')).json();assert.equal(s.rows[0].player.color,'#ee3311');assert.equal(s.rows[0].member,null);
  game.players[0].color='#1122ff';app.ingestGame(game);s=await(await fetch(base+'/api/state')).json();assert.equal(s.rows[0].player.color,'#1122ff');
  await send('/api/demo',{enabled:true},headers);s=await(await fetch(base+'/api/state')).json();assert.equal(s.mode,'demo');assert.equal(s.rows.length,11);
- assert.equal((await send('/api/save',{links:[],settings:{}},headers)).status,400);
+ assert.equal((await send('/api/save',{links:[{gameKey:'demo-game-0',discordId:'demo-user-0'}],settings:{orientation:'vertical',nameSize:26}},headers)).status,200);
+ s=await(await fetch(base+'/api/state')).json();assert.equal(s.mode,'demo');assert.equal(s.preset.links[0].gameKey,'alice');assert.equal(s.preset.settings.nameSize,26);assert.equal(s.preset.settings.orientation,'vertical');
+ assert.equal((await send('/api/save',{settings:{nameSize:100}},headers)).status,400);assert.equal(app.store.current.settings.nameSize,26);
+ const restored=new (await import('../lib/state.mjs')).Store(directory);await restored.load();assert.equal(restored.current.settings.nameSize,26);assert.equal(restored.current.links[0].gameKey,'alice');
  await send('/api/demo',{enabled:false},headers);s=await(await fetch(base+'/api/state')).json();assert.equal(s.preset.links[0].gameKey,'alice');
  const overlay=await(await fetch(base+'/overlay')).text();assert.match(overlay,/class="overlay"/);assert.doesNotMatch(overlay,/Client Secret/);
  assert.equal((await fetch(base+'/icons/aucyan.png')).headers.get('content-type'),'image/png');assert.equal((await fetch(base+'/icons/aucyandead.png')).status,200);

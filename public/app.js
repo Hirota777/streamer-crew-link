@@ -44,10 +44,10 @@ function renderPreview(){
 }
 function updateSaveState(){
   const pending=dirty||settingsDirty,demo=state?.mode==='demo';
-  $('#save').disabled=demo||!pending||saving;$('#discard').hidden=!pending||demo;$('#discard').disabled=saving;
-  $('#save-state').classList.toggle('dirty',pending&&!demo);
-  $('#save-label').textContent=saving?'保存しています':demo?'デモ表示中':pending?'未保存の変更があります':'保存済み';
-  $('#save-description').textContent=demo?'架空のメンバーで表示を確認しています':pending?'保存するとOBSにも反映されます':'次回も同じ設定を使えます';
+  $('#save').disabled=!pending||saving;$('#discard').hidden=!pending;$('#discard').disabled=saving;
+  $('#save-state').classList.toggle('dirty',pending);
+  $('#save-label').textContent=saving?'保存しています':pending?'未保存の変更があります':'保存済み';
+  $('#save-description').textContent=demo?(pending?'見た目だけを保存します。実際の対応づけは維持します。':'見た目は保存済みです。デモのメンバーは保存しません。'):pending?'保存するとOBSにも反映されます':'次回も同じ設定を使えます';
 }
 function edited(){dirty=true;editRevision++;lastKey='';updateSaveState();renderPreview();}
 function gameRows(){return [...draft.map(link=>({link,player:state.game.players.find(p=>p.key===link.gameKey)})),...state.game.players.filter(p=>!draft.some(link=>link.gameKey===p.key)).map(player=>({player,link:null}))];}
@@ -114,12 +114,12 @@ function receive(next){
   $('#create-preset').disabled=demo;$('#preset-name').disabled=demo;
   renderPreview();updateSaveState();
 }
-async function toggleDemo(){if(state.mode!=='demo'&&(dirty||settingsDirty)){toast('変更を保存するか、元に戻してから切り替えてください。');return;}try{receive(await post('/api/demo',{enabled:state.mode!=='demo'}));}catch(error){toast(error.message);}}
+async function toggleDemo(){if(dirty||settingsDirty||saving){toast('変更を保存するか、元に戻してから切り替えてください。');return;}try{receive(await post('/api/demo',{enabled:state.mode!=='demo'}));}catch(error){toast(error.message);}}
 async function copyUrl(){try{if(window.crewLink?.copyOverlayUrl)await window.crewLink.copyOverlayUrl();else await navigator.clipboard.writeText(state.overlayUrl);toast('OBS用URLをコピーしました。');}catch{toast('URL欄を選択してコピーしてください。');$('#overlay-url').focus();$('#overlay-url').select();}}
 $('#demo').onclick=toggleDemo;$('#copy-url').onclick=copyUrl;
 $('#preview-actual').onclick=()=>{const actual=$('#preview-viewport').classList.toggle('actual');$('#preview-actual').setAttribute('aria-pressed',String(actual));$('#preview-actual').textContent=actual?'全体を表示':'実寸で確認';$('#preview-scale-label').hidden=actual;fitPreview();};
 
-$('#save').onclick=async()=>{if(saving||state.mode==='demo')return;saving=true;const revision=editRevision;updateSaveState();try{const result=await post('/api/save',{links:draft,settings:settings()});if(revision===editRevision){dirty=false;settingsDirty=false;}receive(result);toast('設定を保存し、OBSに反映しました。');}catch(error){toast(error.message);}finally{saving=false;updateSaveState();}};
+$('#save').onclick=async()=>{if(saving)return;saving=true;const revision=editRevision;updateSaveState();try{const result=await post('/api/save',state.mode==='demo'?{settings:settings()}:{links:draft,settings:settings()});if(revision===editRevision){dirty=false;settingsDirty=false;}receive(result);toast('設定を保存し、OBSに反映しました。');}catch(error){toast(error.message);}finally{saving=false;updateSaveState();}};
 $('#discard').onclick=()=>{dirty=false;settingsDirty=false;lastKey='';receive(state);toast('未保存の変更を元に戻しました。');};
 $('#presets').onchange=async event=>{if(dirty||settingsDirty){event.target.value=state.preset.id;toast('変更を保存するか、元に戻してから切り替えてください。');return;}try{lastKey='';receive(await post('/api/presets/select',{id:event.target.value}));}catch(error){toast(error.message);}};
 $('#create-preset').onclick=async()=>{try{if(state.mode==='demo')return;if(!$('#preset-name').value.trim())throw Error('プリセット名を入力してください。');await post('/api/save',{links:draft,settings:settings()});const result=await post('/api/presets/create',{name:$('#preset-name').value});dirty=false;settingsDirty=false;lastKey='';receive(result);$('#preset-name').value='';$('.preset-create').open=false;toast('新しいプリセットを保存しました。');}catch(error){toast(error.message);}};
@@ -128,5 +128,5 @@ $('#discord-form').onsubmit=async event=>{event.preventDefault();if(dirty||setti
 $('#disconnect-discord').onclick=async()=>{try{receive(await post('/api/discord/disconnect',{}));}catch(error){toast(error.message);}};
 $('#reconnect-discord').onclick=async()=>{if(dirty||settingsDirty){toast('変更を保存するか、元に戻してから接続してください。');return;}try{receive(await post('/api/discord/reconnect',{}));}catch(error){toast(error.message);}};
 $('#forget-discord').onclick=async()=>{try{receive(await post('/api/discord/forget',{}));$('#discord-form').reset();toast('このPCに保存したDiscordの認証を削除しました。');}catch(error){toast(error.message);}};
-window.addEventListener('beforeunload',event=>{if(state?.mode!=='demo'&&(dirty||settingsDirty)){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(dirty||settingsDirty){event.preventDefault();event.returnValue='';}});
 try{const bootstrap=await(await fetch('/api/bootstrap')).json();token=bootstrap.token;receive(bootstrap);const stream=new EventSource('/api/events');stream.onmessage=event=>receive(JSON.parse(event.data));stream.onerror=()=>{$('#notice').hidden=false;$('#notice').textContent='アプリとの接続が切れました。起動状態を確認してください。';};}catch{toast('アプリに接続できません。起動し直してください。');}

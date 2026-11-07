@@ -51,7 +51,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
         if(req.headers.origin&&!['http://127.0.0.1:'+port,'http://localhost:'+port].includes(req.headers.origin)){json(res,{error:'接続元が不正です。'},403);return;}
         const b=await body(req);
         switch(route){
-          case '/api/save':if(mode==='demo')throw Error('実際の接続に戻してから保存してください。');await store.save(b);break;
+          case '/api/save':await store.save(mode==='demo'?{settings:b.settings,links:store.current.links}:b);break;
           case '/api/presets/create':await store.create(b.name);break;
           case '/api/presets/select':await store.select(b.id);break;
           case '/api/demo':b.enabled?startDemo():stopDemo();break;
