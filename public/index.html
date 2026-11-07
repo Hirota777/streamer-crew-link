@@ -5,8 +5,13 @@
 <div class="shell">
   <header class="app-header">
     <a class="brand" href="#preview"><span class="brand-mark"><span data-character="#38FEDB" aria-hidden="true"></span></span><span>Streamer crew link<small>Among Us 配信アシスト</small></span></a>
-    <div class="header-actions"><span class="version">0.8.5 beta</span><button id="demo" class="secondary">デモを試す</button></div>
+    <div class="header-actions"><span class="version">0.8.6 beta</span><button id="demo" class="secondary">デモを試す</button></div>
   </header>
+    <section class="status-grid" aria-label="現在の接続状態">
+      <article><div class="status-heading"><span>ゲーム</span><span id="game-count" class="status-count">0人</span></div><div class="status-value"><i id="game-dot"></i><strong id="game-status">起動を待っています</strong></div><small id="game-version">Among Us・Nebula・SNRに対応</small></article>
+      <article><div class="status-heading"><span>Discord通話</span><span id="voice-count" class="status-count">0人</span></div><div class="status-value"><i id="discord-dot"></i><strong id="discord-status">未接続</strong></div><small id="discord-channel">サーバーの通話に参加してください</small></article>
+      <article class="display-status"><div class="status-heading"><span>OBSに表示</span><span class="status-count">メンバー</span></div><div class="status-value"><strong id="member-count">0</strong><span class="count-unit">人</span></div><small id="mapping-status">接続後にメンバーを対応づけます</small></article>
+    </section>
   <nav class="tabs" role="tablist" aria-label="作業画面">
     <button id="tab-preview" role="tab" aria-selected="true" aria-controls="preview" data-view="preview"><span class="tab-icon" aria-hidden="true">▣</span>配信画面</button>
     <button id="tab-mapping" role="tab" aria-selected="false" aria-controls="mapping" tabindex="-1" data-view="mapping"><span class="tab-icon" aria-hidden="true">⇄</span>メンバー</button>
@@ -14,11 +19,7 @@
   </nav>
   <main>
     <div id="notice" class="notice" role="status" hidden></div>
-    <section class="status-grid" aria-label="現在の接続状態">
-      <article><div class="status-heading"><span>ゲーム</span><span id="game-count" class="status-count">0人</span></div><div class="status-value"><i id="game-dot"></i><strong id="game-status">起動を待っています</strong></div><small id="game-version">Among Us・Nebula・SNRに対応</small></article>
-      <article><div class="status-heading"><span>Discord通話</span><span id="voice-count" class="status-count">0人</span></div><div class="status-value"><i id="discord-dot"></i><strong id="discord-status">未接続</strong></div><small id="discord-channel">サーバーの通話に参加してください</small></article>
-      <article class="display-status"><div class="status-heading"><span>OBSに表示</span><span class="status-count">メンバー</span></div><div class="status-value"><strong id="member-count">0</strong><span class="count-unit">人</span></div><small id="mapping-status">接続後にメンバーを対応づけます</small></article>
-    </section>
+
     <section id="preview" class="view" role="tabpanel" aria-labelledby="tab-preview">
       <section class="panel preview-panel">
         <div class="panel-heading"><h1>配信プレビュー <span id="preview-mode" class="subtle-badge">本番表示</span></h1><div class="preview-tools"><button id="preview-actual" class="secondary small" aria-pressed="false">実寸で確認</button><a class="button secondary small" href="/overlay" target="_blank" rel="noopener">別画面で開く ↗</a></div></div>
