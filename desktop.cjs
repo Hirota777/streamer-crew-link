@@ -35,7 +35,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
     if(!win||event.sender!==win.webContents||event.senderFrame!==win.webContents.mainFrame||new URL(event.senderFrame.url).origin!==address||new URL(event.senderFrame.url).pathname!=='/')throw Error('コピーを実行できません。');
     await clipboard.writeText(address+'/overlay');
    });
-   win=new BrowserWindow({width:1050,height:760,minWidth:780,minHeight:560,title:'Streamer crew link — Among Us 配信補助',backgroundColor:'#0b1018',show:false,webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});
+   win=new BrowserWindow({width:780,height:930,minWidth:780,minHeight:560,title:'Streamer crew link — Among Us 配信補助',backgroundColor:'#0b1018',show:false,webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});
    win.once('closed',()=>{win=null;if(!quitting)app.quit();});
    secure(win);win.once('ready-to-show',()=>win.show());await win.loadURL(address);
    local.startDiscord().catch(()=>{});
