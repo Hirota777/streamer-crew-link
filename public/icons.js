@@ -1,21 +1,61 @@
+const colours=['red','blue','green','pink','orange','yellow','black','white','purple','brown','cyan','lime','maroon','rose','banana','gray','tan','coral'];
 const standardShadows=['#7A0838','#09158E','#0A4D2E','#AC2BAE','#B43E15','#C38822','#1E1F26','#8495C0','#3B177C','#5E2615','#24A9BF','#15A842','#410F1A','#DE92B3','#D2BC89','#465664','#51413E','#B44362'];
 const hex=value=>/^#[\da-f]{6}$/i.test(value??'');
-export function characterSvg(player){
- if(!player||!hex(player.color))return null;
- const body=player.color;
- const shade=hex(player.shadowColor)?player.shadowColor:player.colorSource!=='nebula'&&Number.isInteger(player.colorId)&&standardShadows[player.colorId]?standardShadows[player.colorId]:'#'+body.slice(1).match(/../g).map(c=>Math.round(parseInt(c,16)*.58).toString(16).padStart(2,'0')).join('');
- const visor=hex(player.visorColor)?player.visorColor:'#95CADC';
- const dead=player.lifeState==='dead'||player.lifeState==='exiled';
- const tint=(color,ratio)=>'#'+color.slice(1).match(/../g).map(c=>Math.round(parseInt(c,16)*ratio).toString(16).padStart(2,'0')).join('');
- const rim=tint(body,.72),visorShade='#'+visor.slice(1).match(/../g).map((c,i)=>Math.round(parseInt(c,16)*[.53,.61,.71][i]).toString(16).padStart(2,'0')).join('');
- const drawing=dead?`<g stroke="#28231f" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"><path d="M29 85Q70 88 112 75Q122 76 121 84Q103 99 54 98Q37 97 29 91Z" fill="#343b3b" stroke="none"/><path d="M19 56Q20 40 30 32L31 20Q31 9 46 6L56 4Q63 3 71 10L86 24Q93 27 95 39L106 40Q119 43 119 58Q120 74 109 82L65 96Q44 98 30 91Q18 81 19 56Z" fill="${shade}"/><path d="M30 34L31 21Q31 12 45 9L56 6Q63 6 70 12L84 25Q90 29 90 40Q90 53 79 56L65 58Q62 57 62 49L61 34Q56 28 44 26L32 22Z" fill="${shade}"/><path d="M36 14Q43 10 56 10Q62 10 69 16L82 29L64 35Q56 28 45 26Q39 24 36 20Z" fill="${body}" stroke="none"/><path d="M62 57Q80 45 95 43Q112 42 115 53Q118 67 106 74L65 91Q67 77 62 57Z" fill="${shade}" stroke="none"/><path d="M62 57Q80 45 95 43Q107 42 111 47Q111 56 101 60Q88 65 64 68Z" fill="${body}" stroke="none"/><path d="M30 37Q43 35 52 41Q60 47 63 56Q69 70 64 85Q61 94 53 95Q33 95 24 83Q18 72 20 55Q21 43 30 37Z" fill="${rim}"/><path d="M30 44Q41 42 49 48L56 56Q62 65 59 78Q57 86 51 87Q34 88 28 78Q23 70 25 58Q25 49 30 44Z" fill="#28231f" stroke-width="4"/><path d="M30 49Q39 47 46 53L52 59Q58 68 54 78Q52 81 47 82" fill="none" stroke="${shade}" stroke-width="4"/><path d="M40 58L22 61Q16 56 11 59Q4 63 10 71Q13 75 18 71L22 69L23 76Q20 82 28 85Q37 88 38 80Q38 76 32 72L33 68L43 65Z" fill="#eeeae1" stroke="#302a27" stroke-width="6"/><path d="M10 66Q12 71 18 68L23 66L24 72L33 72L32 75L27 77Q23 76 23 71L18 73Q11 75 10 66Z" fill="#c0b8ac" stroke="none"/></g>`:`<g stroke="#28231f" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"><path d="M24 34Q6 31 5 47L5 83Q5 95 18 94L25 93Z" fill="${shade}"/><path d="M8 47L8 43Q9 36 23 38L23 49Q14 43 8 47Z" fill="${body}" stroke="none"/><path d="M25 111C23 96 22 78 22 58C22 40 23 25 28 16C33 7 44 4 56 4C72 3 83 10 88 23C92 39 91 63 90 82C89 94 87 104 83 110Q80 113 72 112Q64 112 63 104L62 94Q54 98 46 96L46 112Q46 117 40 118L31 118Q26 118 25 111Z" fill="${body}"/><path d="M28 16C23 35 23 67 29 77Q35 89 53 88Q77 89 89 77L89 83Q87 102 83 109Q80 112 72 111Q65 110 65 101L65 91Q56 96 45 94L45 111Q45 116 39 116L31 116Q27 116 26 109L23 73Q21 39 28 16Z" fill="${shade}" stroke="none"/><path d="M48 24Q69 18 86 23Q96 26 97 38Q101 52 92 55Q73 63 53 58Q42 57 42 46Q41 30 48 24Z" fill="${visor}" stroke="#142d3b" stroke-width="6"/><path d="M45 43Q49 50 68 50Q87 50 95 43L95 48Q94 54 84 55Q65 60 51 55Q45 53 45 43Z" fill="${visorShade}" stroke="none"/><path d="M71 27Q84 25 90 30Q94 35 91 39Q88 41 83 39L72 37Q66 36 67 31Q67 28 71 27Z" fill="#fff" stroke="none"/></g>`;
- return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${dead?'0 0 124 100':'0 0 104 124'}" class="character-image${dead?' character-dead':''}" aria-hidden="true">${drawing}</svg>`;
+const isDead=p=>p?.lifeState==='dead'||p?.lifeState==='exiled';
+const rgb=colour=>colour.slice(1).match(/../g).map(c=>parseInt(c,16));
+const tone=(colour,ratio)=>'#'+rgb(colour).map((c,i)=>Math.round(c*(Array.isArray(ratio)?ratio[i]:ratio)).toString(16).padStart(2,'0')).join('');
+export function colorIcon(player){
+ if(!player||player.colorSource==='nebula'||player.colorKnown===false||!Number.isInteger(player.colorId)||!colours[player.colorId])return null;
+ return `/icons/au${colours[player.colorId]}${isDead(player)?'dead':''}.png`;
 }
-// Compatibility export for callers that used the Nebula-only renderer.
-export function nebulaSvg(player){const dynamic=player?.colorSource==='nebula'||(player?.colorSource==='snr'&&player.colorId>=18);return dynamic&&player.colorKnown&&[player.color,player.shadowColor,player.visorColor].every(hex)?characterSvg(player):null;}
-export function colorIcon(){return null;}
+export function templateIcon(player){return `/icons/aucyan${isDead(player)?'dead':''}.png`;}
+export function spritePalette(player){
+ if(!hex(player?.color))return null;
+ const body=player.color,shadow=hex(player.shadowColor)?player.shadowColor:player.colorSource!=='nebula'&&Number.isInteger(player.colorId)&&standardShadows[player.colorId]?standardShadows[player.colorId]:tone(body,.58);
+ const visor=hex(player.visorColor)?player.visorColor:'#95CADC';
+ return {body,shadow,visor,visorShadow:tone(visor,[.53,.62,.73]),deep:tone(shadow,.4)};
+}
+const templates=new Map(),tinted=new Map();
+function loadTemplate(dead){
+ if(templates.has(dead))return templates.get(dead);
+ const result=new Promise((resolve,reject)=>{
+  const image=new Image();image.onload=()=>{
+   try{
+    const scale=Math.min(1,384/Math.max(image.naturalWidth,image.naturalHeight)),canvas=document.createElement('canvas');
+    canvas.width=Math.round(image.naturalWidth*scale);canvas.height=Math.round(image.naturalHeight*scale);
+    const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(image,0,0,canvas.width,canvas.height);
+    const pixels=context.getImageData(0,0,canvas.width,canvas.height),roles=new Uint8Array(canvas.width*canvas.height);
+    // Only coloured regions are recoloured. Outlines, bone, highlights and alpha remain intact.
+    const seeds=dead?[[68,253,245,0,45],[36,167,189,1,45],[14,67,58,4,24]]:[[57,254,219,0,45],[36,169,190,1,45],[150,202,221,2,35],[79,125,162,3,35]];
+    for(let pixel=0;pixel<roles.length;pixel++){
+     const index=pixel*4;if(!pixels.data[index+3])continue;let nearest=Infinity,role=0;
+     for(let j=0;j<seeds.length;j++){const seed=seeds[j],distance=(pixels.data[index]-seed[0])**2+(pixels.data[index+1]-seed[1])**2+(pixels.data[index+2]-seed[2])**2;if(distance<seed[4]**2&&distance<nearest){nearest=distance;role=j+1;}}
+     roles[pixel]=role;
+    }
+    resolve({pixels,roles,seeds});
+   }catch(error){reject(error);}
+  };image.onerror=()=>reject(Error('画像を読み込めません'));image.src=`/icons/aucyan${dead?'dead':''}.png`;
+ });
+ templates.set(dead,result);result.catch(()=>templates.delete(dead));return result;
+}
+async function tintedSprite(player){
+ const palette=spritePalette(player);if(!palette)throw Error('色を確認できません');
+ const dead=isDead(player),key=JSON.stringify([dead,palette]);if(tinted.has(key))return tinted.get(key);
+ const template=await loadTemplate(dead);if(tinted.has(key))return tinted.get(key);
+ const targets=[palette.body,palette.shadow,palette.visor,palette.visorShadow,palette.deep].map(rgb),data=new Uint8ClampedArray(template.pixels.data);
+ for(let pixel=0;pixel<template.roles.length;pixel++){
+  const role=template.roles[pixel];if(!role)continue;const seed=template.seeds[role-1],target=targets[seed[3]],index=pixel*4;
+  for(let c=0;c<3;c++)data[index+c]=target[c]+template.pixels.data[index+c]-seed[c];
+ }
+ const canvas=document.createElement('canvas');canvas.width=template.pixels.width;canvas.height=template.pixels.height;canvas.getContext('2d').putImageData(new ImageData(data,canvas.width,canvas.height),0,0);
+ if(tinted.size>=64)tinted.delete(tinted.keys().next().value);tinted.set(key,canvas);return canvas;
+}
 export function appendCharacter(target,player){
- const svg=characterSvg(player);if(svg){target.innerHTML=svg;if(player.colorKnown===false){target.classList.add('color-pending');target.title='色取得待ち';}}else{const mark=document.createElement('span');mark.className='unknown-color';mark.textContent='色取得待ち';target.append(mark);}
+ if(player?.colorKnown===false){target.classList.add('color-pending');target.title='色取得待ち';}
+ const source=colorIcon(player);
+ if(source){const image=document.createElement('img');image.className='character-image';image.alt='';image.src=source;target.append(image);return;}
+ const canvas=document.createElement('canvas');canvas.className='character-image';canvas.setAttribute('aria-hidden','true');target.append(canvas);
+ tintedSprite(player).then(sprite=>{if(!canvas.isConnected)return;canvas.width=sprite.width;canvas.height=sprite.height;canvas.getContext('2d').drawImage(sprite,0,0);canvas.dataset.ready='true';}).catch(()=>{if(!canvas.isConnected)return;const mark=document.createElement('span');mark.className='unknown-color';mark.textContent='画像取得待ち';canvas.replaceWith(mark);});
 }
 export function statusBadgeSvg(state){
  if(state==='dead')return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke-linecap="round"><path d="M16 14L48 50M48 14L16 50" stroke="#13202a" stroke-width="26"/><path d="M16 14L48 50M48 14L16 50" stroke="#fffaf4" stroke-width="22"/><path d="M16 14L48 50M48 14L16 50" stroke="#ff244b" stroke-width="14"/></g></svg>`;

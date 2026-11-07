@@ -17,7 +17,7 @@ if(!process.env.STREAMER_CREW_LINK_PROFILE&&!fs.existsSync(migrationMarker)){
   fs.copyFileSync(oldState,newState);
  }
 }
-let win,local,stopReader;const address='http://127.0.0.1:37891';
+let win,local,stopReader,quitting=false;const overlayWindows=new Set();const address='http://127.0.0.1:37891';
 if(!app.requestSingleInstanceLock()){app.quit();}else{
  app.on('second-instance',()=>{if(win){if(win.isMinimized())win.restore();win.show();win.focus();}});
  app.whenReady().then(async()=>{
@@ -36,12 +36,13 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
     await clipboard.writeText(address+'/overlay');
    });
    win=new BrowserWindow({width:1050,height:760,minWidth:780,minHeight:560,title:'Streamer crew link — Among Us 配信補助',backgroundColor:'#0b1018',show:false,webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});
+   win.once('closed',()=>{win=null;if(!quitting)app.quit();});
    secure(win);win.once('ready-to-show',()=>win.show());await win.loadURL(address);
    local.startDiscord().catch(()=>{});
   }catch(e){dialog.showErrorBox('CREW LINKを起動できません',e.code==='EADDRINUSE'?'以前の開発版が起動しています。以前のアプリを終了してから起動してください。':e.message);app.quit();}
  });
  app.on('window-all-closed',()=>app.quit());
- app.on('before-quit',()=>{stopReader?.();local?.shutdown();});
+ app.on('before-quit',()=>{quitting=true;stopReader?.();local?.shutdown();});
 }
 function secure(window){
  window.webContents.setWindowOpenHandler(({url})=>{if(url===address+'/overlay'){openOverlay();}return {action:'deny'};});
@@ -53,5 +54,6 @@ function openOverlay(){
  const vertical=local?.snapshot().preset.settings.orientation==='vertical';
  const area=screen.getPrimaryDisplay().workAreaSize;
  const overlay=new BrowserWindow({width:Math.min(vertical?430:1400,area.width-40),height:vertical?Math.min(1100,area.height-60):330,backgroundColor:'#101820',webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});
+ overlayWindows.add(overlay);overlay.once('closed',()=>overlayWindows.delete(overlay));
  secure(overlay);overlay.loadURL(address+'/overlay?preview=1');
 }

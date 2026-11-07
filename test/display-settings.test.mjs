@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
 import os from 'node:os';import path from 'node:path';
 import {Store,cleanGame,cleanSettings} from '../lib/state.mjs';
-import {characterSvg,statusBadgeSvg} from '../public/icons.js';
+import {colorIcon,templateIcon,statusBadgeSvg} from '../public/icons.js';
 
 test('縦横と独立したアイコン倍率を保存し、旧設定へ既定値を補う',async()=>{
  const dir=await mkdtemp(path.join(os.tmpdir(),'crew-display-'));try{
@@ -16,8 +16,8 @@ test('不正な並べ方やマーク倍率を拒否する',()=>{
  for(const settings of [{orientation:'url(evil)'},{badgeSize:Infinity},{badgeSize:81},{characterScale:49},{characterScale:'100'}])assert.throws(()=>cleanSettings(settings));
 });
 test('死亡と追放は同じDeadキャラクターで、Discordマークのみ異なる',()=>{
- const base={color:'#38FEDB',shadowColor:'#117F82',visorColor:'#95CADC'};
- assert.equal(characterSvg({...base,lifeState:'dead'}),characterSvg({...base,lifeState:'exiled'}));assert.notEqual(characterSvg({...base,lifeState:'alive'}),characterSvg({...base,lifeState:'dead'}));
+ const base={colorId:10,color:'#38FEDB',shadowColor:'#117F82',visorColor:'#95CADC'};
+ assert.equal(colorIcon({...base,lifeState:'dead'}),colorIcon({...base,lifeState:'exiled'}));assert.notEqual(colorIcon({...base,lifeState:'alive'}),colorIcon({...base,lifeState:'dead'}));assert.equal(templateIcon({...base,lifeState:'exiled'}),'/icons/aucyandead.png');
  assert.match(statusBadgeSvg('dead'),/#ff244b/);assert.match(statusBadgeSvg('exiled'),/#f4b844/);assert.match(statusBadgeSvg('exiled'),/#fffaf4/);assert.equal(statusBadgeSvg('alive'),null);
 });
 test('生の生死・役職・死因は画面APIへ引き継がず、許可済みの状態だけ保持する',()=>{

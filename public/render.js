@@ -3,6 +3,11 @@ export function renderCrew(target,state){
   const s=state.preset.settings;target.style.setProperty('--crew-size',s.size+'px');target.style.setProperty('--crew-gap',s.gap+'px');
   target.style.setProperty('--character-scale',String((s.characterScale??100)/100));target.style.setProperty('--badge-ratio',String((s.badgeSize??42)/100));target.classList.toggle('vertical',s.orientation==='vertical');
   const rows=state.rows.filter(r=>r.visible&&r.player&&r.member);
+  const renderKey=JSON.stringify([s,rows.map(r=>({gameKey:r.gameKey,label:r.label,player:r.player,member:{id:r.member.id,name:r.member.name,avatar:r.member.avatar}}))]);
+  if(target.crewRenderKey===renderKey&&target.children.length===rows.length){
+    rows.forEach((r,index)=>target.children[index].classList.toggle('speaking',Boolean(r.member.speaking)));return rows.length;
+  }
+  target.crewRenderKey=renderKey;
   target.replaceChildren(...rows.map(r=>{
     const item=document.createElement('div');item.className='crew-item'+(r.member.speaking?' speaking':'')+(s.dimIdle?' dim-idle':'');item.style.setProperty('--player-color',r.player.color);
     const character=document.createElement('div');character.className='character';appendCharacter(character,r.player);item.append(character);
