@@ -3,6 +3,8 @@ import {appendCharacter} from './icons.js';
 const $=selector=>document.querySelector(selector);
 let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,editRevision=0,lastKey='',authUiSaved;
 const views=['preview','mapping','connections'];
+const settingKeys=['size','gap','characterScale','badgeSize','orientation','showStatus','showNames','dimIdle'];
+for(const node of document.querySelectorAll('[data-character]'))appendCharacter(node,{color:node.dataset.character,colorKnown:true,lifeState:'alive'});
 function openView(id,{focus=false}={}){
   if(!views.includes(id))id='preview';
   for(const view of views){const active=view===id;$('#'+view).hidden=!active;const tab=$('#tab-'+view);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;}
@@ -26,17 +28,22 @@ window.addEventListener('hashchange',()=>openView(location.hash.slice(1).replace
 openView(location.hash.slice(1).replace(/^view-/,''));
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,4500);}
 async function post(url,data){const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify(data)});const result=await response.json();if(!response.ok)throw Error(result.error);return result;}
-function settings(){return {size:Number($('#size').value),gap:Number($('#gap').value),showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked};}
-function updateOutputs(){$('#size-value').textContent=$('#size').value+' px';$('#gap-value').textContent=$('#gap').value+' px';}
+function settings(){return {size:Number($('#size').value),gap:Number($('#gap').value),characterScale:Number($('#characterScale').value),badgeSize:Number($('#badgeSize').value),orientation:$('#orientation').value,showStatus:$('#showStatus').checked,showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked};}
+function updateOutputs(){$('#size-value').textContent=$('#size').value+' px';$('#gap-value').textContent=$('#gap').value+' px';$('#characterScale-value').textContent=$('#characterScale').value+' %';$('#badgeSize-value').textContent=$('#badgeSize').value+' %';$('#obs-dimensions').textContent=$('#orientation').value==='vertical'?'縦：360 × 1080 · 透明':'横：1920 × 300 · 透明';}
 function syncSettings(){for(const [key,value]of Object.entries(state.preset.settings)){const element=$('#'+key);if(element.type==='checkbox')element.checked=value;else element.value=value;}updateOutputs();}
-function fitPreview(){const viewport=$('#preview-viewport'),crew=$('#preview-crew');if(!viewport.clientWidth||!crew.offsetWidth)return;const scale=Math.min(1,(viewport.clientWidth-40)/crew.offsetWidth,(viewport.clientHeight-34)/Math.max(1,crew.offsetHeight));crew.style.setProperty('--preview-scale',String(scale));$('#preview-scale-label').hidden=!crew.children.length||scale>=.99;}
+function fitPreview(){const viewport=$('#preview-viewport'),crew=$('#preview-crew');if(viewport.classList.contains('actual'))return;if(!viewport.clientWidth||!crew.offsetWidth)return;const scale=Math.min(1,(viewport.clientWidth-40)/crew.offsetWidth,(viewport.clientHeight-34)/Math.max(1,crew.offsetHeight));crew.style.setProperty('--preview-scale',String(scale));$('#preview-scale-label').hidden=!crew.children.length||scale>=.99;}
 new ResizeObserver(fitPreview).observe($('#preview-viewport'));
 function renderPreview(){
   if(!state)return;
   const rows=state.mode==='demo'?state.rows:draft.map(link=>({...link,player:state.game.players.find(p=>p.key===link.gameKey)||null,member:state.discord.members.find(m=>m.id===link.discordId)||null}));
   const count=renderCrew($('#preview-crew'),{...state,rows,preset:{...state.preset,settings:settings()}});
+  $('#preview-viewport').classList.toggle('portrait',settings().orientation==='vertical');
   $('#preview-empty').hidden=count>0;
   const badge=$('#preview-mode');badge.textContent=state.mode==='demo'?'デモ表示':dirty||settingsDirty?'未保存のプレビュー':'本番表示';badge.classList.toggle('demo',state.mode==='demo');
+  const vertical=settings().orientation==='vertical',crew=$('#preview-crew');
+  const suggestedWidth=Math.max(vertical?360:1920,Math.ceil((crew.offsetWidth+48)/20)*20);
+  const suggestedHeight=Math.max(vertical?1080:300,Math.ceil((crew.offsetHeight+48)/20)*20);
+  $('#obs-dimensions').textContent=(vertical?'縦：':'横：')+suggestedWidth+' × '+suggestedHeight+' · 透明';
   fitPreview();
 }
 function updateSaveState(){
@@ -107,7 +114,8 @@ function receive(next){
   if(!auth.storageAvailable)$('#remember-discord').checked=false;
   if(authUiSaved!==auth.saved){$('#discord-form').elements.channelId.value=auth.channelId||'';authUiSaved=auth.saved;}
   $('#notice').hidden=true;$('#notice').textContent='';$('#demo').textContent=demo?'実際の接続に戻る':'デモを試す';
-  for(const key of ['size','gap','showNames','dimIdle'])$('#'+key).disabled=demo;
+  for(const key of settingKeys)$('#'+key).disabled=false;
+  $('.life-help').textContent=!demo&&next.game.online&&!next.game.lifeTracking?'会議情報を確認できないため、死亡マークの自動更新を保留しています。':'死亡は会議開始時、吊られは会議終了後の追放確定時に更新します。途中起動時は次の会議から同期します。';
   $('#overlay-url').value=next.overlayUrl;
   const count=next.rows.filter(row=>row.visible&&row.player&&row.member).length;$('#member-count').textContent=count;
   $('#mapping-status').textContent=next.unmapped?next.unmapped+'人が未設定です':count?'保存したメンバーを表示中':'接続後にメンバーを対応づけます';
@@ -119,18 +127,19 @@ function receive(next){
   $('#create-preset').disabled=demo;$('#preset-name').disabled=demo;
   updateNextStep(count);renderPreview();updateSaveState();
 }
-async function toggleDemo(){if(dirty||settingsDirty){toast('変更を保存するか、元に戻してから切り替えてください。');return;}try{receive(await post('/api/demo',{enabled:state.mode!=='demo'}));}catch(error){toast(error.message);}}
+async function toggleDemo(){if(state.mode!=='demo'&&(dirty||settingsDirty)){toast('変更を保存するか、元に戻してから切り替えてください。');return;}try{receive(await post('/api/demo',{enabled:state.mode!=='demo'}));}catch(error){toast(error.message);}}
 async function copyUrl(){try{if(window.crewLink?.copyOverlayUrl)await window.crewLink.copyOverlayUrl();else await navigator.clipboard.writeText(state.overlayUrl);toast('OBS用URLをコピーしました。');}catch{toast('URL欄を選択してコピーしてください。');$('#overlay-url').focus();$('#overlay-url').select();}}
 $('#demo').onclick=toggleDemo;$('#copy-url').onclick=copyUrl;
+$('#preview-actual').onclick=()=>{const actual=$('#preview-viewport').classList.toggle('actual');$('#preview-actual').setAttribute('aria-pressed',String(actual));$('#preview-actual').textContent=actual?'全体を表示':'実寸で確認';$('#preview-scale-label').hidden=actual;fitPreview();};
 $('#next-action').onclick=()=>{const action=$('#next-action').dataset.action;if(action==='demo')toggleDemo();else if(action==='copy')copyUrl();else openView(action);};
 $('#save').onclick=async()=>{if(saving||state.mode==='demo')return;saving=true;const revision=editRevision;updateSaveState();try{const result=await post('/api/save',{links:draft,settings:settings()});if(revision===editRevision){dirty=false;settingsDirty=false;}receive(result);toast('設定を保存し、OBSに反映しました。');}catch(error){toast(error.message);}finally{saving=false;updateSaveState();}};
 $('#discard').onclick=()=>{dirty=false;settingsDirty=false;lastKey='';receive(state);toast('未保存の変更を元に戻しました。');};
 $('#presets').onchange=async event=>{if(dirty||settingsDirty){event.target.value=state.preset.id;toast('変更を保存するか、元に戻してから切り替えてください。');return;}try{lastKey='';receive(await post('/api/presets/select',{id:event.target.value}));}catch(error){toast(error.message);}};
 $('#create-preset').onclick=async()=>{try{if(state.mode==='demo')return;if(!$('#preset-name').value.trim())throw Error('プリセット名を入力してください。');await post('/api/save',{links:draft,settings:settings()});const result=await post('/api/presets/create',{name:$('#preset-name').value});dirty=false;settingsDirty=false;lastKey='';receive(result);$('#preset-name').value='';$('.preset-create').open=false;toast('新しいプリセットを保存しました。');}catch(error){toast(error.message);}};
-for(const key of ['size','gap','showNames','dimIdle'])$('#'+key).oninput=()=>{if(state.mode==='demo')return;settingsDirty=true;editRevision++;updateOutputs();renderPreview();updateSaveState();};
+for(const key of settingKeys)$('#'+key).oninput=()=>{settingsDirty=true;editRevision++;updateOutputs();renderPreview();updateSaveState();};
 $('#discord-form').onsubmit=async event=>{event.preventDefault();if(dirty||settingsDirty){toast('変更を保存するか、元に戻してから接続してください。');return;}const options=Object.fromEntries(new FormData(event.target));options.remember=$('#remember-discord').checked;$('#connect-discord').disabled=true;try{receive(await post('/api/discord/connect',options));toast('Discordと連携しました。');}catch(error){toast(error.message);}finally{$('#connect-discord').disabled=state.discord.auth.busy;}};
 $('#disconnect-discord').onclick=async()=>{try{receive(await post('/api/discord/disconnect',{}));}catch(error){toast(error.message);}};
 $('#reconnect-discord').onclick=async()=>{if(dirty||settingsDirty){toast('変更を保存するか、元に戻してから接続してください。');return;}try{receive(await post('/api/discord/reconnect',{}));}catch(error){toast(error.message);}};
 $('#forget-discord').onclick=async()=>{try{receive(await post('/api/discord/forget',{}));$('#discord-form').reset();toast('このPCに保存したDiscordの認証を削除しました。');}catch(error){toast(error.message);}};
-window.addEventListener('beforeunload',event=>{if(dirty||settingsDirty){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(state?.mode!=='demo'&&(dirty||settingsDirty)){event.preventDefault();event.returnValue='';}});
 try{const bootstrap=await(await fetch('/api/bootstrap')).json();token=bootstrap.token;receive(bootstrap);const stream=new EventSource('/api/events');stream.onmessage=event=>receive(JSON.parse(event.data));stream.onerror=()=>{$('#notice').hidden=false;$('#notice').textContent='アプリとの接続が切れました。起動状態を確認してください。';};}catch{toast('アプリに接続できません。起動し直してください。');}

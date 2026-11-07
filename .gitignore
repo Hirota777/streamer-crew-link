@@ -20,3 +20,6 @@ test/reader-trust/obj/
 *.pem
 *.key
 *.zip
+
+test/reader-life/bin/
+test/reader-life/obj/

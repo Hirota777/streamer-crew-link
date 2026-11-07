@@ -1,4 +1,4 @@
-const {app,BrowserWindow,dialog,Menu,safeStorage,shell,ipcMain,clipboard}=require('electron');
+const {app,BrowserWindow,dialog,Menu,safeStorage,shell,ipcMain,clipboard,screen}=require('electron');
 const path=require('node:path');const fs=require('node:fs');const {pathToFileURL}=require('node:url');
 const base=app.isPackaged?path.dirname(process.execPath):__dirname;
 const data=process.env.STREAMER_CREW_LINK_PROFILE?path.resolve(process.env.STREAMER_CREW_LINK_PROFILE):path.join(app.getPath('appData'),'Streamer crew link');fs.mkdirSync(path.join(data,'desktop'),{recursive:true});app.setPath('userData',path.join(data,'desktop'));
@@ -30,7 +30,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
    await new Promise((resolve,reject)=>{local.server.once('error',reject);local.server.listen(37891,'127.0.0.1',resolve);});
    const {startReader}=await import(pathToFileURL(path.join(__dirname,'lib','reader.mjs')).href);
    stopReader=startReader(app.isPackaged?path.join(process.resourcesPath,'reader'):path.join(__dirname,'reader','release'),local.ingestGame,local.setReaderStatus);
-   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'アプリ',submenu:[{label:'OBS表示を開く',click:()=>{const overlay=new BrowserWindow({width:1400,height:330,backgroundColor:'#101820',webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});secure(overlay);overlay.loadURL(address+'/overlay');}},{type:'separator'},{label:'終了',role:'quit'}]},{label:'表示',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}]));
+   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'アプリ',submenu:[{label:'OBS表示を開く',click:()=>{openOverlay();}},{type:'separator'},{label:'終了',role:'quit'}]},{label:'表示',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}]));
    ipcMain.handle('crew-link:copy-overlay-url',async event=>{
     if(!win||event.sender!==win.webContents||event.senderFrame!==win.webContents.mainFrame||new URL(event.senderFrame.url).origin!==address||new URL(event.senderFrame.url).pathname!=='/')throw Error('コピーを実行できません。');
     await clipboard.writeText(address+'/overlay');
@@ -44,7 +44,14 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
  app.on('before-quit',()=>{stopReader?.();local?.shutdown();});
 }
 function secure(window){
- window.webContents.setWindowOpenHandler(({url})=>{if(url===address+'/overlay'){const overlay=new BrowserWindow({width:1400,height:330,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});secure(overlay);overlay.loadURL(url);}return {action:'deny'};});
+ window.webContents.setWindowOpenHandler(({url})=>{if(url===address+'/overlay'){openOverlay();}return {action:'deny'};});
  window.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith(address+'/'))event.preventDefault();});
  window.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
+}
+
+function openOverlay(){
+ const vertical=local?.snapshot().preset.settings.orientation==='vertical';
+ const area=screen.getPrimaryDisplay().workAreaSize;
+ const overlay=new BrowserWindow({width:Math.min(vertical?430:1400,area.width-40),height:vertical?Math.min(1100,area.height-60):330,backgroundColor:'#101820',webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});
+ secure(overlay);overlay.loadURL(address+'/overlay?preview=1');
 }

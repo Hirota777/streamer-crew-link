@@ -24,7 +24,7 @@ test('外部読取、色の反映、保存、デモ分離、透明OBSページ',
  assert.equal((await send('/api/save',{links:[],settings:{}},headers)).status,400);
  await send('/api/demo',{enabled:false},headers);s=await(await fetch(base+'/api/state')).json();assert.equal(s.preset.links[0].gameKey,'alice');
  const overlay=await(await fetch(base+'/overlay')).text();assert.match(overlay,/class="overlay"/);assert.doesNotMatch(overlay,/Client Secret/);
- assert.equal((await fetch(base+'/icons/aucyan.png')).headers.get('content-type'),'image/png');
+ assert.equal((await fetch(base+'/icons/aucyan.png')).status,404);
  assert.equal((await send('/api/game',game,headers)).status,404);
  app.setReaderStatus('unsupported','未対応');s=await(await fetch(base+'/api/state')).json();assert.equal(s.game.online,false);assert.equal(s.reader.status,'unsupported');
  assert.equal((await send('/api/save',{links:[],settings:{}},{...headers,Origin:'https://example.com'})).status,403);
