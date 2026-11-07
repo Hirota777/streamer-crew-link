@@ -9,11 +9,13 @@ sealed class PublicLifeTracker
     GamePhase previous=GamePhase.Unknown;
     int? candidate;
     bool awaitingExile;
+    long exileDeadline;
     readonly HashSet<int> eligible=new();
     internal void Reset(){states.Clear();eligible.Clear();previous=GamePhase.Unknown;candidate=null;awaitingExile=false;}
     internal string State(int id)=>states.GetValueOrDefault(id,"alive");
-    internal void Update(GamePhase phase,IReadOnlyList<LifeSample> players,int? votedPlayer)
+    internal void Update(GamePhase phase,IReadOnlyList<LifeSample> players,int? votedPlayer,long? timestamp=null)
     {
+        var now=timestamp??Environment.TickCount64;
         if(phase==GamePhase.Unknown)return;
         if((phase is GamePhase.Lobby or GamePhase.Menu) || (phase==GamePhase.Tasks&&(previous is GamePhase.Lobby or GamePhase.Ended))){
             states.Clear();candidate=null;awaitingExile=false;
@@ -27,15 +29,21 @@ sealed class PublicLifeTracker
             // Read the candidate only after voting reaches results, not during voting.
             if(votedPlayer.HasValue)candidate=eligible.Contains(votedPlayer.Value)?votedPlayer:null;
         }
-        if(previous==GamePhase.Meeting && (phase is GamePhase.Exile or GamePhase.Tasks or GamePhase.Ended)){
+        if((previous==GamePhase.Meeting || previous==GamePhase.Exile) && (phase is GamePhase.Exile or GamePhase.Tasks or GamePhase.Ended)){
             if(phase==GamePhase.Exile&&votedPlayer.HasValue)candidate=eligible.Contains(votedPlayer.Value)?votedPlayer:null;
             foreach(var player in players)states[player.Id]=player.Dead?(State(player.Id)=="exiled"?"exiled":"dead"):"alive";
-            awaitingExile=true;
+            if(previous==GamePhase.Meeting){awaitingExile=true;exileDeadline=now+5000;}
+            if(previous==GamePhase.Exile&&phase!=GamePhase.Exile)exileDeadline=now+5000;
         }
+        // Exile animations may outlive MeetingHud and the dead flag may arrive
+        // after its first frame. Refresh throughout the public exile phase and
+        // once on return to tasks, including when no vote target was readable.
+        // After that, only the known voted player is eligible for late updates:
+        // ordinary task-phase kills must remain hidden until the next meeting.
         if(awaitingExile && (phase is GamePhase.Exile or GamePhase.Tasks or GamePhase.Ended) && candidate.HasValue){
             var voted=players.FirstOrDefault(p=>p.Id==candidate.Value);
-            if(voted.Id==candidate.Value&&voted.Dead){states[voted.Id]="exiled";awaitingExile=false;}
-            else if(phase is GamePhase.Tasks or GamePhase.Ended)awaitingExile=false;
+            if(phase!=GamePhase.Exile&&now>=exileDeadline)awaitingExile=false;
+            else if(voted.Id==candidate.Value&&voted.Dead){states[voted.Id]="exiled";awaitingExile=false;}
         }
         previous=phase;
     }

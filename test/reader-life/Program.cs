@@ -18,9 +18,9 @@ tracker.Update(GamePhase.Tasks,Samples(false,true,false),null);Check(tracker,1,"
 tracker.Update(GamePhase.Meeting,Samples(false,true,false),null);Check(tracker,1,"dead");
 tracker.Update(GamePhase.Meeting,Samples(false,true,false),1);
 tracker.Update(GamePhase.Exile,Samples(false,true,false),null);Check(tracker,1,"dead");
-tracker.Reset();tracker.Update(GamePhase.Meeting,Samples(false,false),0);
-tracker.Update(GamePhase.Exile,Samples(false,false),null);tracker.Update(GamePhase.Tasks,Samples(false,false),null);
-tracker.Update(GamePhase.Tasks,Samples(true,false),null);Check(tracker,0,"alive");
+tracker.Reset();tracker.Update(GamePhase.Meeting,Samples(false,false),0,0);
+tracker.Update(GamePhase.Exile,Samples(false,false),null,0);tracker.Update(GamePhase.Tasks,Samples(false,false),null,100);
+tracker.Update(GamePhase.Tasks,Samples(true,false),null,5100);Check(tracker,0,"alive");
 tracker.Update(GamePhase.Meeting,Samples(true,false),null);Check(tracker,0,"dead");
 tracker.Reset();tracker.Update(GamePhase.Meeting,Samples(false,false),null);
 tracker.Update(GamePhase.Unknown,Samples(true,false),null);Check(tracker,0,"alive");
@@ -28,3 +28,12 @@ tracker.Update(GamePhase.Tasks,Samples(true,false),null);Check(tracker,0,"dead")
 tracker.Update(GamePhase.Lobby,Samples(false,false),null);tracker.Update(GamePhase.Tasks,Samples(false,false),null);Check(tracker,0,"alive");
 tracker.Reset();tracker.Update(GamePhase.Meeting,Samples(false,false),null);tracker.Update(GamePhase.Exile,Samples(true,false),0);Check(tracker,0,"exiled");
 Console.WriteLine("Life timing checks passed: deaths held during tasks/meeting, meeting edges, late exile confirmation, skipped vote, protected/surviving candidate, stale candidate, unknown phase, end screen and new-round reset.");
+tracker.Reset();tracker.Update(GamePhase.Meeting,Samples(false,false),null,0);
+tracker.Update(GamePhase.Exile,Samples(false,false),null,0);
+tracker.Update(GamePhase.Exile,Samples(true,false),null,600);Check(tracker,0,"dead");
+tracker.Update(GamePhase.Tasks,Samples(true,true),null,1200);Check(tracker,1,"dead");
+tracker.Reset();tracker.Update(GamePhase.Meeting,Samples(false,false,false),1,0);
+tracker.Update(GamePhase.Exile,Samples(false,false,false),null,600);
+tracker.Update(GamePhase.Tasks,Samples(false,false,false),null,1200);
+tracker.Update(GamePhase.Tasks,Samples(true,true,false),null,1800);Check(tracker,1,"exiled");Check(tracker,0,"alive");
+Console.WriteLine("Regression checks passed: unreadable vote target, late exile phase deaths, return-to-tasks refresh, delayed voted death and hidden task kills.");

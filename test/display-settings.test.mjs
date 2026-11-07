@@ -17,10 +17,10 @@ test('縦横と独立したアイコン倍率を保存し、旧設定へ既定�
 test('不正な並べ方やマーク倍率を拒否する',()=>{
  for(const settings of [{orientation:'url(evil)'},{badgeSize:Infinity},{badgeSize:81},{characterScale:49},{characterScale:'100'},{nameSize:7},{nameSize:41},{nameSize:NaN},{nameSize:'20'},{colorBackground:'red'},{horizontalNamePosition:'right'},{verticalNamePosition:'below'}])assert.throws(()=>cleanSettings(settings));
 });
-test('死亡と追放は同じDeadキャラクターで、Discordマークのみ異なる',()=>{
+test('死亡と追放は同じDeadキャラクターと赤い×を表示する',()=>{
  const base={colorId:10,color:'#38FEDB',shadowColor:'#117F82',visorColor:'#95CADC'};
  assert.equal(colorIcon({...base,lifeState:'dead'}),colorIcon({...base,lifeState:'exiled'}));assert.notEqual(colorIcon({...base,lifeState:'alive'}),colorIcon({...base,lifeState:'dead'}));assert.equal(templateIcon({...base,lifeState:'exiled'}),'/icons/aucyandead.png');
- assert.match(statusBadgeSvg('dead'),/#ff244b/);assert.match(statusBadgeSvg('exiled'),/#f4b844/);assert.match(statusBadgeSvg('exiled'),/#fffaf4/);assert.equal(statusBadgeSvg('alive'),null);
+ assert.match(statusBadgeSvg('dead'),/#ff244b/);assert.equal(statusBadgeSvg('exiled'),statusBadgeSvg('dead'));assert.match(statusBadgeSvg('exiled'),/#fffaf4/);assert.equal(statusBadgeSvg('alive'),null);
 });
 test('生の生死・役職・死因は画面APIへ引き継がず、許可済みの状態だけ保持する',()=>{
  const game=cleanGame({players:[{key:'p',color:'#123456',lifeState:'exiled',isDead:true,role:'secret',killer:'secret'}]});assert.equal(game.players[0].lifeState,'exiled');

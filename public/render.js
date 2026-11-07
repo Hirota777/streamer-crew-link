@@ -18,7 +18,7 @@ export function renderCrew(target,state){
     if(r.member.avatar&&/^https:\/\/cdn\.discordapp\.com\//.test(r.member.avatar)){const img=document.createElement('img');img.src=r.member.avatar;img.alt='';img.onerror=()=>{img.remove();avatar.textContent=r.member.name.slice(0,2);};avatar.append(img);}else{avatar.textContent=r.member.name.slice(0,2);}
     avatarWrap.append(avatar);
     const badge=s.showStatus!==false?statusBadgeSvg(r.player.lifeState):null;
-    if(badge){const mark=document.createElement('span');mark.className='state-badge';mark.setAttribute('role','img');mark.setAttribute('aria-label',r.player.lifeState==='exiled'?'投票で追放':'死亡');mark.innerHTML=badge;avatarWrap.append(mark);}
+    if(badge){const mark=document.createElement('span');mark.className='state-badge';mark.setAttribute('role','img');mark.setAttribute('aria-label','死亡');mark.innerHTML=badge;avatarWrap.append(mark);}
     item.append(avatarWrap);if(s.showNames){const name=document.createElement('div');name.className='crew-name';name.textContent=r.label||r.member.name;name.title=name.textContent;(namePosition==='overlap'?avatarWrap:item).append(name);}return item;
   }));return rows.length;
 }
