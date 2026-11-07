@@ -3,7 +3,7 @@ import {appendCharacter} from './icons.js';
 const $=selector=>document.querySelector(selector);
 let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,editRevision=0,lastKey='',authUiSaved;
 const views=['preview','mapping','connections'];
-const settingKeys=['size','gap','characterScale','badgeSize','nameSize','orientation','showStatus','showNames','dimIdle'];
+const settingKeys=['size','gap','characterScale','badgeSize','nameSize','colorBackground','horizontalNamePosition','verticalNamePosition','orientation','showStatus','showNames','dimIdle'];
 for(const node of document.querySelectorAll('[data-character]'))appendCharacter(node,{color:node.dataset.character,colorKnown:true,lifeState:'alive'});
 function openView(id,{focus=false}={}){
   if(!views.includes(id))id='preview';
@@ -28,7 +28,7 @@ window.addEventListener('hashchange',()=>openView(location.hash.slice(1).replace
 openView(location.hash.slice(1).replace(/^view-/,''));
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,4500);}
 async function post(url,data){const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify(data)});const result=await response.json();if(!response.ok)throw Error(result.error);return result;}
-function settings(){return {size:Number($('#size').value),gap:Number($('#gap').value),characterScale:Number($('#characterScale').value),badgeSize:Number($('#badgeSize').value),nameSize:Number($('#nameSize').value),orientation:$('#orientation').value,showStatus:$('#showStatus').checked,showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked};}
+function settings(){return {size:Number($('#size').value),gap:Number($('#gap').value),characterScale:Number($('#characterScale').value),badgeSize:Number($('#badgeSize').value),nameSize:Number($('#nameSize').value),colorBackground:$('#colorBackground').checked,horizontalNamePosition:$('#horizontalNamePosition').value,verticalNamePosition:$('#verticalNamePosition').value,orientation:$('#orientation').value,showStatus:$('#showStatus').checked,showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked};}
 function updateOutputs(){$('#size-value').textContent=$('#size').value+' px';$('#gap-value').textContent=$('#gap').value+' px';$('#characterScale-value').textContent=$('#characterScale').value+' %';$('#badgeSize-value').textContent=$('#badgeSize').value+' %';$('#nameSize-value').textContent=$('#nameSize').value+' px';}
 function syncSettings(){for(const [key,value]of Object.entries(state.preset.settings)){const element=$('#'+key);if(element.type==='checkbox')element.checked=value;else element.value=value;}updateOutputs();}
 function fitPreview(){const viewport=$('#preview-viewport'),crew=$('#preview-crew');if(viewport.classList.contains('actual'))return;if(!viewport.clientWidth||!crew.offsetWidth)return;const scale=Math.min(1,(viewport.clientWidth-40)/crew.offsetWidth,(viewport.clientHeight-34)/Math.max(1,crew.offsetHeight));crew.style.setProperty('--preview-scale',String(scale));$('#preview-scale-label').hidden=!crew.children.length||scale>=.99;}
