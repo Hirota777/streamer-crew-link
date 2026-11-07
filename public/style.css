@@ -27,3 +27,5 @@ body.overlay.overlay-preview{overflow:auto!important}
 .shell>.status-grid{width:100%;max-width:1200px;margin:0 auto;padding:8px 26px 12px}
 @media(max-width:850px){.shell>.status-grid{padding-left:18px;padding-right:18px}}
 @media(max-width:640px){.shell>.status-grid{padding-left:12px;padding-right:12px}}
+
+.legal-links{display:flex;flex-wrap:wrap;gap:8px 14px}.legal-links a{color:var(--muted);text-underline-offset:3px}.page-footer{flex-wrap:wrap}

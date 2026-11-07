@@ -4,7 +4,7 @@ import {Discord} from '../lib/discord.mjs';
 import {DiscordSession} from '../lib/discord-session.mjs';
 import {APPLICATION} from '../lib/application.mjs';
 
-const channel=id=>({id,guild_id:'server',name:id,voice_states:[{user:{id:'member',username:'Member'}}]});
+const channel=id=>({id,guild_id:'server',type:2,name:id,voice_states:[{user:{id:'member',username:'Member'}}]});
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
 const tick=()=>new Promise(r=>setImmediate(r));
 function harness(){

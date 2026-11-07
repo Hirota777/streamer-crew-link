@@ -8,8 +8,8 @@ import {Decoder,frame,Discord} from '../lib/discord.mjs';
 
 test('対応づけ・表示設定を保存し再起動後に復元、別プリセットを分離',async()=>{
  const dir=await mkdtemp(path.join(os.tmpdir(),'crewlink-'));try{
- const s=new Store(dir);await s.load();await s.save({links:[{gameKey:'account:a',discordId:'123',label:'配信用',visible:true}],settings:{size:100,gap:20}});
- const r=new Store(dir);await r.load();assert.equal(r.current.links[0].label,'配信用');assert.equal(r.current.settings.size,100);
+ const s=new Store(dir,{allowPlaintext:true});await s.load();await s.save({links:[{gameKey:'account:a',discordId:'123',label:'配信用',visible:true}],settings:{size:100,gap:20}});
+ const r=new Store(dir,{allowPlaintext:true});await r.load();assert.equal(r.current.links[0].label,'配信用');assert.equal(r.current.settings.size,100);
  await r.create('別メンバー');await r.save({links:[],settings:{size:60}});await r.select('default');assert.equal(r.current.links.length,1);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
@@ -22,7 +22,7 @@ test('ゲーム入力の色を検証して危険な文字列を描画に渡さ�
  const g=cleanGame({players:[{key:'a',name:'Alice',color:'#12ABEF',stable:true}]});assert.equal(g.players[0].stable,true);
 });
 test('破損した保存ファイルを上書きしない',async()=>{
- const dir=await mkdtemp(path.join(os.tmpdir(),'crewlink-'));try{const file=path.join(dir,'settings.json');await writeFile(file,'broken');await assert.rejects(new Store(dir).load());assert.equal(await readFile(file,'utf8'),'broken');}finally{await rm(dir,{recursive:true,force:true});}
+ const dir=await mkdtemp(path.join(os.tmpdir(),'crewlink-'));try{const file=path.join(dir,'settings.json');await writeFile(file,'broken');await assert.rejects(new Store(dir,{allowPlaintext:true}).load());assert.equal(await readFile(file,'utf8'),'broken');}finally{await rm(dir,{recursive:true,force:true});}
 });
 test('Discord IPCの分割受信と複数フレームを処理',()=>{
  const d=new Decoder(),a=frame(1,{evt:'SPEAKING_START',data:{user_id:'a'}}),b=frame(1,{evt:'SPEAKING_STOP',data:{user_id:'a'}});

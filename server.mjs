@@ -10,8 +10,8 @@ import {OAuthFlow} from './lib/oauth.mjs';
 import {APPLICATION} from './lib/application.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
-export async function createApp({directory=path.join(here,'data'),port=37891,credentialVault=null,discordClient,openExternal}={}){
-  const store=new Store(directory);await store.load();
+export async function createApp({directory=path.join(here,'data'),port=37891,credentialVault=null,settingsCipher=null,allowPlaintextSettings=false,clearLegacyData=async()=>{},discordClient,openExternal}={}){
+  const store=new Store(directory,{cipher:settingsCipher,allowPlaintext:allowPlaintextSettings});await store.load();
   const csrf=randomBytes(32).toString('hex');
   const oauth=new OAuthFlow({application:APPLICATION,openExternal});
   const client=discordClient??new Discord({authorize:()=>oauth.begin(),cancelAuthorization:()=>oauth.cancel()});
@@ -33,7 +33,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
   function startDemo(){stopDemo();mode='demo';demoMembers=demoGame.players.map((p,i)=>({id:'demo-user-'+i,name:['Shiro','Kuro','Momo','Sora','Ao','Murasaki','Kiiro','Midori','Aka','Lime','Rose'][i],avatar:null,speaking:false}));demoTimer=setInterval(()=>{demoMembers.forEach((m,i)=>m.speaking=i===Math.floor(Date.now()/1100)%11);broadcast();},400);}
   const timer=setInterval(broadcast,2000);timer.unref();
   function equal(a,b){return typeof a==='string'&&Buffer.byteLength(a)===Buffer.byteLength(b)&&timingSafeEqual(Buffer.from(a),Buffer.from(b));}
-  async function body(req){let b='';for await(const c of req){b+=c;if(Buffer.byteLength(b)>128*1024)throw Error('送信データが大きすぎます。');}return JSON.parse(b||'{}');}
+  async function body(req){const chunks=[];let bytes=0;for await(const c of req){bytes+=c.length;if(bytes>128*1024)throw Error('送信データが大きすぎます。');chunks.push(c);}let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks,bytes));}catch{throw Error('送信データの文字コードが不正です。');}return JSON.parse(text||'{}');}
   function json(res,value,status=200){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
   const server=http.createServer({requestTimeout:15000,headersTimeout:10000,maxHeaderSize:16384},async(req,res)=>{
     try{
@@ -62,6 +62,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
           case '/api/discord/reconnect':stopDemo();await discord.reconnect();break;
           case '/api/discord/disconnect':discord.disconnect();break;
           case '/api/discord/forget':await discord.forget();break;
+          case '/api/data/clear':stopDemo();await discord.forget();await store.reset();await clearLegacyData();break;
           default:json(res,{error:'見つかりません。'},404);return;
         }
         broadcast();json(res,snapshot());return;

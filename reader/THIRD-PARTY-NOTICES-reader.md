@@ -25,7 +25,7 @@ System.Security.Cryptography.ProtectedData/4.5.0: See package metadata; https://
 Microsoft packages: Copyright (c) Microsoft Corporation.
 
 MICROSOFT SOFTWARE LICENSE TERMS
-MICROSOFT .NET LIBRARY 
+MICROSOFT .NET LIBRARY
 These license terms are an agreement between Microsoft Corporation (or based on where you live, one of its affiliates) and you. Please read them. They apply to the software named above, which includes the media on which you received it, if any. The terms also apply to any Microsoft
   * updates,
   * supplements,
@@ -34,13 +34,13 @@ These license terms are an agreement between Microsoft Corporation (or based on 
 for this software, unless other terms accompany those items. If so, those terms apply.
 BY USING THE SOFTWARE, YOU ACCEPT THESE TERMS. IF YOU DO NOT ACCEPT THEM, DO NOT USE THE SOFTWARE.
 IF YOU COMPLY WITH THESE LICENSE TERMS, YOU HAVE THE PERPETUAL RIGHTS BELOW.
-1. INSTALLATION AND USE RIGHTS. 
+1. INSTALLATION AND USE RIGHTS.
   a. Installation and Use. You may install and use any number of copies of the software to design, develop and test your programs.
   b. Third Party Programs. The software may include third party programs that Microsoft, not the third party, licenses to you under this agreement. Notices, if any, for the third party program are included for your information only.
 2. DATA. The software may collect information about you and your use of the software, and send that to Microsoft. Microsoft may use this information to improve our products and services. You can learn more about data collection and use in the help documentation and the privacy statement at https://go.microsoft.com/fwlink/?LinkId=528096. Your use of the software operates as your consent to these practices.
 3. ADDITIONAL LICENSING REQUIREMENTS AND/OR USE RIGHTS.
   a. DISTRIBUTABLE CODE. The software is comprised of Distributable Code. "Distributable Code" is code that you are permitted to distribute in programs you develop if you comply with the terms below.
-    i. Right to Use and Distribute. 
+    i. Right to Use and Distribute.
       * You may copy and distribute the object code form of the software.
       * Third Party Distribution. You may permit distributors of your programs to copy and distribute the Distributable Code as part of those programs.
     ii. Distribution Requirements. For any Distributable Code you distribute, you must
@@ -88,3 +88,44 @@ Cette limitation concerne :
 Elle s'applique également, même si Microsoft connaissait ou devrait connaître l'éventualité d'un tel dommage. Si votre pays n'autorise pas l'exclusion ou la limitation de responsabilité pour les dommages indirects, accessoires ou de quelque nature que ce soit, il se peut que la limitation ou l'exclusion ci-dessus ne s'appliquera pas à votre égard.
 EFFET JURIDIQUE. Le présent contrat décrit certains droits juridiques. Vous pourriez avoir d'autres droits prévus par les lois de votre pays. Le présent contrat ne modifie pas les droits que vous confèrent les lois de votre pays si celles-ci ne le permettent pas.
 
+
+## MIT license text for the packages listed above
+
+Azure.Core/1.53.0: © Microsoft Corporation. All rights reserved.
+Azure.Identity/1.21.0: © Microsoft Corporation. All rights reserved.
+Microsoft.Bcl.AsyncInterfaces/10.0.3: © Microsoft Corporation. All rights reserved.
+Microsoft.Diagnostics.NETCore.Client/0.2.661903: © Microsoft Corporation. All rights reserved.
+Microsoft.Diagnostics.Runtime/4.2.751201: © Microsoft Corporation. All rights reserved.
+Microsoft.Extensions.Configuration.Abstractions/10.0.3: © Microsoft Corporation. All rights reserved.
+Microsoft.Extensions.DependencyInjection.Abstractions/10.0.3: © Microsoft Corporation. All rights reserved.
+Microsoft.Extensions.Diagnostics.Abstractions/10.0.3: © Microsoft Corporation. All rights reserved.
+Microsoft.Extensions.FileProviders.Abstractions/10.0.3: © Microsoft Corporation. All rights reserved.
+Microsoft.Extensions.Hosting.Abstractions/10.0.3: © Microsoft Corporation. All rights reserved.
+Microsoft.Extensions.Logging.Abstractions/10.0.3: © Microsoft Corporation. All rights reserved.
+Microsoft.Extensions.Options/10.0.3: © Microsoft Corporation. All rights reserved.
+Microsoft.Extensions.Primitives/10.0.3: © Microsoft Corporation. All rights reserved.
+Microsoft.Identity.Client/4.83.1: © Microsoft Corporation. All rights reserved.
+Microsoft.Identity.Client.Extensions.Msal/4.83.1: © Microsoft Corporation. All rights reserved.
+Microsoft.IdentityModel.Abstractions/8.14.0: © Microsoft Corporation. All rights reserved.
+Microsoft.NET.ILLink.Tasks/10.0.14: © Microsoft Corporation. All rights reserved.
+Microsoft.Security.AntiSSRF/1.0.0: © Microsoft Corporation. All rights reserved.
+System.ClientModel/1.10.0: © Microsoft Corporation. All rights reserved.
+System.Memory.Data/10.0.3: © Microsoft Corporation. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

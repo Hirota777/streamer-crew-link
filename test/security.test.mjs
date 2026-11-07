@@ -7,7 +7,7 @@ import http from 'node:http';
 import {createApp} from '../server.mjs';
 
 test('外部サイトの読取・変更と偽Hostを拒否し、OAuthの外部からの戻りはstateで検証',async()=>{
- const directory=await mkdtemp(path.join(os.tmpdir(),'crewlink-security-'));const port=37934,app=await createApp({directory,port});
+ const directory=await mkdtemp(path.join(os.tmpdir(),'crewlink-security-'));const port=37934,app=await createApp({allowPlaintextSettings:true,directory,port});
  await new Promise(r=>app.server.listen(port,'127.0.0.1',r));const base=`http://127.0.0.1:${port}`;
  try{
   for(const route of ['/','/overlay','/api/bootstrap','/api/state','/api/events','/app.js']){
@@ -24,7 +24,7 @@ test('外部サイトの読取・変更と偽Hostを拒否し、OAuthの外部�
  }finally{app.shutdown();await rm(directory,{recursive:true,force:true});}
 });
 test('表示接続数を制限し、閉じた接続は再利用できる',async()=>{
- const directory=await mkdtemp(path.join(os.tmpdir(),'crewlink-stream-limit-'));const port=37935,app=await createApp({directory,port});
+ const directory=await mkdtemp(path.join(os.tmpdir(),'crewlink-stream-limit-'));const port=37935,app=await createApp({allowPlaintextSettings:true,directory,port});
  await new Promise(r=>app.server.listen(port,'127.0.0.1',r));const base=`http://127.0.0.1:${port}`;const connections=[];
  try{
   for(let i=0;i<32;i++){const controller=new AbortController();const response=await fetch(base+'/api/events',{signal:controller.signal});connections.push({controller,response});assert.equal(response.status,200);}
