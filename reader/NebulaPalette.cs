@@ -6,6 +6,31 @@ sealed class NebulaPalette : IDisposable
     ClrRuntime? runtime;
     LegacyDacTrust? legacyTrust;
     public record Shade(string Body,string Shadow,string Visor);
+    // Read only the public meeting-end event identity. Do not inspect role,
+    // killer, target masks or positional data from the statistics history.
+    public int? CompletedMeetings()
+    {
+        if(runtime==null)return null;
+        var type=runtime.EnumerateModules().Select(m=>m.GetTypeByName("Nebula.Game.NebulaGameManager")).FirstOrDefault(t=>t!=null);
+        if(type==null)return null;
+        var manager=type.GetStaticFieldByName("instance")!.ReadObject(runtime.AppDomains.First());
+        if(manager.IsNull)return null;
+        var statistics=manager.ReadObjectField("<GameStatistics>k__BackingField");
+        var events=statistics.ReadObjectField("allEvents");
+        var count=events.ReadField<int>("_size");
+        var version=events.ReadField<int>("_version");
+        var items=events.ReadObjectField("_items").AsArray();
+        if(count<0||count>10000||count>items.Length)throw new IOException("Unexpected public meeting history");
+        var completed=0;
+        for(int i=0;i<count;i++){
+            var entry=items.GetObjectValue(i);
+            var variation=entry.ReadObjectField("<EventVariation>k__BackingField");
+            if(variation.Type?.Name!="Nebula.Game.Statistics.GameStatistics+EventVariation")continue;
+            if(variation.ReadField<int>("<Id>k__BackingField")==4)completed++;
+        }
+        if(events.ReadField<int>("_version")!=version)throw new IOException("Meeting history changed while reading");
+        return completed;
+    }
     public Dictionary<int,Shade> Read(int processId)
     {
         target ??= DataTarget.AttachToProcess(processId, suspend:false,new DataTargetOptions{

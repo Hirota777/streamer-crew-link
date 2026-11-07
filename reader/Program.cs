@@ -9,6 +9,7 @@ if (args.Contains("--self-test")) { ReaderSelfTest.Run(); return; }
 // External, read-only capture. This process never injects code, writes memory,
 // or changes files in the game's directory.
 if(args.Length==2&&args[0]=="--palette-probe"){using var probe=new NebulaPalette();Console.WriteLine(JsonSerializer.Serialize(probe.Read(int.Parse(args[1]))));return;}
+if(args.Length==2&&args[0]=="--meeting-probe"){using var probe=new NebulaPalette();probe.Read(int.Parse(args[1]));Console.WriteLine(JsonSerializer.Serialize(new{completedMeetings=probe.CompletedMeetings()}));return;}
 if(args.Length==2&&args[0]=="--snr-palette-probe"){Console.WriteLine(JsonSerializer.Serialize(SnrPalette.Read(args[1])));return;}
 var profiles = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"profiles.json")));
 Process? game = null;
@@ -79,6 +80,8 @@ while(true){
     string paletteFailure="";
     if(nebula){try{palette=nebulaPalette.Read(game.Id);}catch(Exception error){paletteFailure=NebulaPalette.FailureMessage(error);nebulaPalette.Dispose();}}
     var mem=new Memory(handle,is64);var phaseBefore=ReadPhase(mem).phase;var list=mem.Chain(module,profile.GetProperty("AllPlayerPtrOffsets"));
+    int? completedMeetings=null;
+    if(nebula){try{completedMeetings=nebulaPalette.CompletedMeetings();}catch{}}
     if(list==0){Status("waiting","ゲームに接続しました。ロビーへの参加を待っています");Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,modVersion="外部読取",players=Array.Empty<object>()}}));await Task.Delay(600);continue;}
     var count=mem.Int(list+profile.GetProperty("PlayerCountOffsets")[0].GetInt32());
     if(count<0||count>50)throw new IOException();
@@ -104,7 +107,8 @@ while(true){
     if(mem.Int(list+profile.GetProperty("PlayerCountOffsets")[0].GetInt32())!=count)throw new IOException();
     var (phase,votedPlayer)=ReadPhase(mem);
     if(phaseBefore!=phase){await Task.Delay(60);continue;}
-    life.Update(phase,players.Select(p=>new LifeSample(p.playerId,p.dead)).ToArray(),votedPlayer);
+    if(nebula&&completedMeetings.HasValue){try{if(nebulaPalette.CompletedMeetings()!=completedMeetings){await Task.Delay(60);continue;}}catch{completedMeetings=null;}}
+    life.Update(phase,players.Select(p=>new LifeSample(p.playerId,p.dead)).ToArray(),votedPlayer,publicCompletedMeetings:completedMeetings);
     var duplicates=players.GroupBy(p=>p.name).Where(g=>g.Count()>1).Select(g=>g.Key).ToHashSet();
     var result=players.Where(p=>!duplicates.Contains(p.name)).Select(p=>{
         var dynamicColor=nebula||(snr&&p.colorId>=colors.Length);

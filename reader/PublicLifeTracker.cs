@@ -10,15 +10,19 @@ sealed class PublicLifeTracker
     int? candidate;
     bool awaitingExile;
     long exileDeadline;
+    int? completedMeetings;
     readonly HashSet<int> eligible=new();
-    internal void Reset(){states.Clear();eligible.Clear();previous=GamePhase.Unknown;candidate=null;awaitingExile=false;}
+    internal void Reset(){states.Clear();eligible.Clear();previous=GamePhase.Unknown;candidate=null;awaitingExile=false;completedMeetings=null;}
     internal string State(int id)=>states.GetValueOrDefault(id,"alive");
-    internal void Update(GamePhase phase,IReadOnlyList<LifeSample> players,int? votedPlayer,long? timestamp=null)
+    internal void Update(GamePhase phase,IReadOnlyList<LifeSample> players,int? votedPlayer,long? timestamp=null,int? publicCompletedMeetings=null)
     {
         var now=timestamp??Environment.TickCount64;
-        if(phase==GamePhase.Unknown)return;
+        var completed=publicCompletedMeetings.HasValue&&completedMeetings.HasValue&&publicCompletedMeetings>completedMeetings;
+        if(publicCompletedMeetings.HasValue)completedMeetings=publicCompletedMeetings;
+        if(phase==GamePhase.Unknown){if(completed)foreach(var player in players)states[player.Id]=player.Dead?"dead":"alive";return;}
         if((phase is GamePhase.Lobby or GamePhase.Menu) || (phase==GamePhase.Tasks&&(previous is GamePhase.Lobby or GamePhase.Ended))){
             states.Clear();candidate=null;awaitingExile=false;
+            completed=false;
         }
         if(phase==GamePhase.Meeting){
             if(previous!=GamePhase.Meeting){
@@ -45,6 +49,10 @@ sealed class PublicLifeTracker
             if(phase!=GamePhase.Exile&&now>=exileDeadline)awaitingExile=false;
             else if(voted.Id==candidate.Value&&voted.Dead){states[voted.Id]="exiled";awaitingExile=false;}
         }
+        // Nebula completes exile(s), extra victims and synchronization after
+        // the native MeetingHud disappears. Its public MeetingEnd event is the
+        // authoritative second boundary, regardless of native vote target.
+        if(completed){foreach(var player in players)states[player.Id]=player.Dead?"dead":"alive";awaitingExile=false;}
         previous=phase;
     }
 }

@@ -23,3 +23,6 @@ test/reader-trust/obj/
 
 test/reader-life/bin/
 test/reader-life/obj/
+
+test/reader-meeting/bin/
+test/reader-meeting/obj/

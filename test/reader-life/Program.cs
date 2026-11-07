@@ -37,3 +37,16 @@ tracker.Update(GamePhase.Exile,Samples(false,false,false),null,600);
 tracker.Update(GamePhase.Tasks,Samples(false,false,false),null,1200);
 tracker.Update(GamePhase.Tasks,Samples(true,true,false),null,1800);Check(tracker,1,"exiled");Check(tracker,0,"alive");
 Console.WriteLine("Regression checks passed: unreadable vote target, late exile phase deaths, return-to-tasks refresh, delayed voted death and hidden task kills.");
+
+// Nebula may remove MeetingHud before delayed exile/extra victims are applied.
+tracker.Reset();tracker.Update(GamePhase.Tasks,Samples(false,false,false),null,0,0);
+tracker.Update(GamePhase.Meeting,Samples(false,false,false),null,100,0);
+tracker.Update(GamePhase.Tasks,Samples(false,false,false),null,200,0);
+tracker.Update(GamePhase.Tasks,Samples(true,true,false),null,12000,1);Check(tracker,0,"dead");Check(tracker,1,"dead");
+tracker.Update(GamePhase.Tasks,Samples(true,true,true),null,13000,1);Check(tracker,2,"alive");
+tracker.Reset();tracker.Update(GamePhase.Tasks,Samples(true,false),null,0,3);Check(tracker,0,"alive");
+tracker.Update(GamePhase.Unknown,Samples(true,true),null,100,4);Check(tracker,1,"dead");
+tracker.Update(GamePhase.Lobby,Samples(false,false),null,200,0);Check(tracker,0,"alive");
+tracker.Update(GamePhase.Tasks,Samples(false,false),null,300,0);
+tracker.Update(GamePhase.Tasks,Samples(true,false),null,400,1);Check(tracker,0,"dead");
+Console.WriteLine("Nebula completion checks passed: late/multiple exiles without native target, unchanged event hides task kills, initial baseline, unknown native phase and new-game reset.");
