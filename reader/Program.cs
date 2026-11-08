@@ -23,7 +23,7 @@ long module = 0;
 bool is64 = true;
 string version = "";
 string lastStatus = "";
-var life=new PublicLifeTracker();int lifeProcess=0;
+var life=new PublicLifeTracker();int lifeProcess=0;var playerKeys=new Dictionary<int,string>();
 void Status(string status,string message) {
     var serialized=JsonSerializer.Serialize(new {type="status",status,message});
     if(lastStatus!=serialized){Console.WriteLine(serialized);lastStatus=serialized;}
@@ -54,7 +54,7 @@ while(true){
         var processes=Process.GetProcessesByName("Among Us");
         if(processes.Length!=1){foreach(var p in processes)p.Dispose();Status("waiting",processes.Length>1?"ゲームが複数起動しています。1つにしてください。":"Among Usの起動を待っています");await Task.Delay(1500);continue;}
         game=processes[0];nebulaPalette.Dispose();
-        if(lifeProcess!=game.Id){life.Reset();lifeProcess=game.Id;}
+        if(lifeProcess!=game.Id){life.Reset();playerKeys.Clear();lifeProcess=game.Id;}
         var assembly=game.Modules.Cast<ProcessModule>().FirstOrDefault(m=>string.Equals(m.ModuleName,"GameAssembly.dll",StringComparison.OrdinalIgnoreCase));
         if(assembly==null){game.Dispose();game=null;Status("waiting","ゲームの読み込みを待っています");await Task.Delay(1500);continue;}
         using(var file=File.OpenRead(assembly.FileName??throw new IOException())){
@@ -87,18 +87,18 @@ while(true){
     if(count<0||count>50)throw new IOException();
     var array=mem.Chain(list,profile.GetProperty("AllPlayersOffsets"));
     var info=profile.GetProperty("PlayerInfoStructOffsets");var outfitProfile=profile.GetProperty("PlayerOutfitStructOffsets");
-    var players=new List<(string name,int colorId,int playerId,bool dead)>();
+    var players=new List<(string name,int colorId,int playerId,bool dead)>();var departedKeys=new List<string>();
     for(int i=0;i<count;i++){
         long player=mem.Pointer(array+profile.GetProperty("PlayerListPtr").GetInt32()+i*profile.GetProperty("AddPlayerPtr").GetInt32());
         if(player==0)throw new IOException();
-        if(mem.Bytes(player+info.GetProperty("DisconnectedOffset").GetInt32(),1)[0]!=0)continue;
+        var playerId=mem.Bytes(player+profile.GetProperty("PlayerIdOffset").GetInt32(),1)[0];
+        if(mem.Bytes(player+info.GetProperty("DisconnectedOffset").GetInt32(),1)[0]!=0){if(playerKeys.TryGetValue(playerId,out var departed))departedKeys.Add(departed);continue;}
         var outfit=mem.Chain(player,info.GetProperty("OutfitsOffset"));
         if(outfit==0)throw new IOException();
         var colorId=mem.Int(outfit+outfitProfile.GetProperty("ColorIDOffset").GetInt32());
         var namePtr=mem.Pointer(outfit+outfitProfile.GetProperty("PlayerNameOffset").GetInt32());
         var name=mem.String(namePtr,profile.GetProperty("StringOffsets")[0].GetInt32(),profile.GetProperty("StringOffsets")[1].GetInt32());
         if(colorId<0||colorId>255||string.IsNullOrWhiteSpace(name))throw new IOException();
-        var playerId=mem.Bytes(player+profile.GetProperty("PlayerIdOffset").GetInt32(),1)[0];
         var dead=mem.Bytes(player+info.GetProperty("IsDeadOffset").GetInt32(),1)[0]!=0;
         players.Add((name,colorId,playerId,dead));
     }
@@ -109,13 +109,14 @@ while(true){
     if(phaseBefore!=phase){await Task.Delay(60);continue;}
     if(nebula&&completedMeetings.HasValue){try{if(nebulaPalette.CompletedMeetings()!=completedMeetings){await Task.Delay(60);continue;}}catch{completedMeetings=null;meetingReadFailed=true;}}
     life.Update(phase,players.Select(p=>new LifeSample(p.playerId,p.dead)).ToArray(),votedPlayer,publicCompletedMeetings:completedMeetings);
+    foreach(var p in players)playerKeys[p.playerId]="name:"+p.name;
     var duplicates=players.GroupBy(p=>p.name).Where(g=>g.Count()>1).Select(g=>g.Key).ToHashSet();
     var result=players.Where(p=>!duplicates.Contains(p.name)).Select(p=>{
         var dynamicColor=nebula||(snr&&p.colorId>=colors.Length);
         (nebula?palette:snrColors).TryGetValue(nebula?p.playerId:p.colorId,out var shade);
         return new {key="name:"+p.name,name=p.name,lifeState=life.State(p.playerId),colorId=p.colorId,color=dynamicColor?shade?.Body??"#8794a3":p.colorId<colors.Length?colors[p.colorId]:"#8794a3",shadowColor=shade?.Shadow,visorColor=shade?.Visor,colorSource=nebula?"nebula":snr?"snr":"vanilla",colorKnown=dynamicColor?shade!=null:p.colorId<colors.Length,stable=false};
     }).ToArray();
-    Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,scene=phase.ToString(),lifeTracking=phase!=GamePhase.Unknown,modVersion=nebula?"Nebula 動的カラー":snr?"SNR 追加カラー":"通常カラー",players=result}}));
+    Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,scene=phase.ToString(),lifeTracking=phase!=GamePhase.Unknown,modVersion=nebula?"Nebula 動的カラー":snr?"SNR 追加カラー":"通常カラー",players=result,departedKeys}}));
     Status(meetingReadFailed?"error":"connected",meetingReadFailed?"Nebulaの会議終了情報を取得できません。状態更新の対応確認が必要です。":duplicates.Count>0?"同名の参加者がいます。名前を一意にしてください。":nebula&&palette.Count==0?paletteFailure.Length>0?paletteFailure:"Nebulaの色取得を待っています（標準色への置き換えは行いません）":snr&&snrColors.Count==0?"SNRの追加色データを確認できません。このSNRバージョンの対応確認が必要です。":"外部読取で接続中（ゲームへの追加導入なし）");
  }catch(UnauthorizedAccessException){Status("error","ゲーム情報を読み取れません。ゲームとアプリの実行権限を確認してください。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}
  catch{Status("waiting","ゲーム情報の更新を待っています。ロビー参加後も続く場合は対応確認が必要です。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}

@@ -35,7 +35,7 @@ function fitPreview(){const viewport=$('#preview-viewport'),crew=$('#preview-cre
 new ResizeObserver(fitPreview).observe($('#preview-viewport'));
 function renderPreview(){
   if(!state)return;
-  const rows=state.mode==='demo'?state.rows:draft.map(link=>({...link,player:state.game.players.find(p=>p.key===link.gameKey)||null,member:state.discord.members.find(m=>m.id===link.discordId)||null}));
+  const rows=state.mode==='demo'?state.rows:draft.map(link=>({...link,player:(state.game.displayPlayers??state.game.players).find(p=>p.key===link.gameKey)||null,member:state.discord.members.find(m=>m.id===link.discordId)||null}));
   const count=renderCrew($('#preview-crew'),{...state,rows,preset:{...state.preset,settings:settings()}});
   $('#preview-viewport').classList.toggle('portrait',settings().orientation==='vertical');
   $('#preview-empty').hidden=count>0;
