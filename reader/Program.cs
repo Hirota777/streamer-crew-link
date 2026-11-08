@@ -80,8 +80,8 @@ while(true){
     string paletteFailure="";
     if(nebula){try{palette=nebulaPalette.Read(game.Id);}catch(Exception error){paletteFailure=NebulaPalette.FailureMessage(error);nebulaPalette.Dispose();}}
     var mem=new Memory(handle,is64);var phaseBefore=ReadPhase(mem).phase;var list=mem.Chain(module,profile.GetProperty("AllPlayerPtrOffsets"));
-    int? completedMeetings=null;
-    if(nebula){try{completedMeetings=nebulaPalette.CompletedMeetings();}catch{}}
+    int? completedMeetings=null;bool meetingReadFailed=false;
+    if(nebula){try{completedMeetings=nebulaPalette.CompletedMeetings();meetingReadFailed=completedMeetings==null&&phaseBefore is GamePhase.Meeting or GamePhase.Exile or GamePhase.Tasks;}catch{meetingReadFailed=true;}}
     if(list==0){Status("waiting","ゲームに接続しました。ロビーへの参加を待っています");Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,modVersion="外部読取",players=Array.Empty<object>()}}));await Task.Delay(600);continue;}
     var count=mem.Int(list+profile.GetProperty("PlayerCountOffsets")[0].GetInt32());
     if(count<0||count>50)throw new IOException();
@@ -107,7 +107,7 @@ while(true){
     if(mem.Int(list+profile.GetProperty("PlayerCountOffsets")[0].GetInt32())!=count)throw new IOException();
     var (phase,votedPlayer)=ReadPhase(mem);
     if(phaseBefore!=phase){await Task.Delay(60);continue;}
-    if(nebula&&completedMeetings.HasValue){try{if(nebulaPalette.CompletedMeetings()!=completedMeetings){await Task.Delay(60);continue;}}catch{completedMeetings=null;}}
+    if(nebula&&completedMeetings.HasValue){try{if(nebulaPalette.CompletedMeetings()!=completedMeetings){await Task.Delay(60);continue;}}catch{completedMeetings=null;meetingReadFailed=true;}}
     life.Update(phase,players.Select(p=>new LifeSample(p.playerId,p.dead)).ToArray(),votedPlayer,publicCompletedMeetings:completedMeetings);
     var duplicates=players.GroupBy(p=>p.name).Where(g=>g.Count()>1).Select(g=>g.Key).ToHashSet();
     var result=players.Where(p=>!duplicates.Contains(p.name)).Select(p=>{
@@ -116,7 +116,7 @@ while(true){
         return new {key="name:"+p.name,name=p.name,lifeState=life.State(p.playerId),colorId=p.colorId,color=dynamicColor?shade?.Body??"#8794a3":p.colorId<colors.Length?colors[p.colorId]:"#8794a3",shadowColor=shade?.Shadow,visorColor=shade?.Visor,colorSource=nebula?"nebula":snr?"snr":"vanilla",colorKnown=dynamicColor?shade!=null:p.colorId<colors.Length,stable=false};
     }).ToArray();
     Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,scene=phase.ToString(),lifeTracking=phase!=GamePhase.Unknown,modVersion=nebula?"Nebula 動的カラー":snr?"SNR 追加カラー":"通常カラー",players=result}}));
-    Status("connected",duplicates.Count>0?"同名の参加者がいます。名前を一意にしてください。":nebula&&palette.Count==0?paletteFailure.Length>0?paletteFailure:"Nebulaの色取得を待っています（標準色への置き換えは行いません）":snr&&snrColors.Count==0?"SNRの追加色データを確認できません。このSNRバージョンの対応確認が必要です。":"外部読取で接続中（ゲームへの追加導入なし）");
+    Status(meetingReadFailed?"error":"connected",meetingReadFailed?"Nebulaの会議終了情報を取得できません。状態更新の対応確認が必要です。":duplicates.Count>0?"同名の参加者がいます。名前を一意にしてください。":nebula&&palette.Count==0?paletteFailure.Length>0?paletteFailure:"Nebulaの色取得を待っています（標準色への置き換えは行いません）":snr&&snrColors.Count==0?"SNRの追加色データを確認できません。このSNRバージョンの対応確認が必要です。":"外部読取で接続中（ゲームへの追加導入なし）");
  }catch(UnauthorizedAccessException){Status("error","ゲーム情報を読み取れません。ゲームとアプリの実行権限を確認してください。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}
  catch{Status("waiting","ゲーム情報の更新を待っています。ロビー参加後も続く場合は対応確認が必要です。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}
  await Task.Delay(600);

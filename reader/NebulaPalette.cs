@@ -16,7 +16,9 @@ sealed class NebulaPalette : IDisposable
         var manager=type.GetStaticFieldByName("instance")!.ReadObject(runtime.AppDomains.First());
         if(manager.IsNull)return null;
         var statistics=manager.ReadObjectField("<GameStatistics>k__BackingField");
-        var events=statistics.ReadObjectField("allEvents");
+        var eventField=statistics.Type?.GetFieldByName("allEvents")??statistics.Type?.GetFieldByName("<allEvents>k__BackingField");
+        if(eventField==null)throw new IOException("Unsupported public meeting history layout");
+        var events=eventField.ReadObject(statistics.Address,false);
         var count=events.ReadField<int>("_size");
         var version=events.ReadField<int>("_version");
         var items=events.ReadObjectField("_items").AsArray();

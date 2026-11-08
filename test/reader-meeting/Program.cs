@@ -7,5 +7,9 @@ namespace Nebula.Game { public class NebulaGameManager { public static NebulaGam
 namespace Nebula.Game.Statistics { public class GameStatistics {
  public class EventVariation { public int Id {get;private init;} public EventVariation(int id){Id=id;} }
  public class Event { public EventVariation EventVariation {get;private init;} public Event(int id){EventVariation=new(id);} }
+#if EVENTS_PROPERTY
+ private List<Event> allEvents {get;set;}=new(){new(2),new(5),new(4),new(0),new(6),new(4),new(0)};
+#else
  private List<Event> allEvents=new(){new(2),new(5),new(4),new(0),new(6),new(4),new(0)};
+#endif
 } }
