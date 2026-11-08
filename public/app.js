@@ -60,17 +60,19 @@ function table(){
     const name=document.createElement('span');name.className='player-name';name.textContent=displayName;td.append(chip,name);
     const detail=document.createElement('small');detail.className='player-detail';detail.textContent=!player?'ゲームに不在':!link?'Discord参加者を選択':state.discord.members.some(m=>m.id===link.discordId)?'対応づけ済み':'通話に不在';td.append(detail);tr.append(td);
     const select=document.createElement('select');select.setAttribute('aria-label',displayName+'のDiscord参加者');
-    const none=document.createElement('option');none.value='';none.textContent='参加者を選択';select.append(none);
+    const none=document.createElement('option');none.value='';none.textContent=link?'対応づけを解除':'参加者を選択';select.append(none);
     const members=[...state.discord.members];if(link&&!members.some(m=>m.id===link.discordId))members.push({id:link.discordId,name:(link.label||link.gameName||'保存済み参加者')+'（通話に不在）'});
     for(const member of members){const option=document.createElement('option');option.value=member.id;option.textContent=member.name;select.append(option);}select.value=link?.discordId||'';select.disabled=demo;
     const memberCell=document.createElement('td');memberCell.append(select);tr.append(memberCell);
+    function unlink(){draft=draft.filter(l=>l.gameKey!==key);edited();table();toast('対応づけを解除しました。「変更を保存」で確定します。');}
+    if(link){const remove=document.createElement('button');remove.type='button';remove.className='unlink-button';remove.textContent='解除';remove.setAttribute('aria-label',displayName+'の対応づけを解除');remove.disabled=demo;remove.onclick=unlink;memberCell.append(remove);} 
     const label=document.createElement('input');label.value=link?.label||'';label.placeholder='Discord名を使用';label.maxLength=80;label.disabled=demo||!select.value;label.setAttribute('aria-label',displayName+'の配信用の名前');const labelCell=document.createElement('td');labelCell.append(label);tr.append(labelCell);
     const visible=document.createElement('input');visible.type='checkbox';visible.checked=link?.visible!==false;visible.disabled=demo||!select.value;visible.setAttribute('aria-label',displayName+'を表示');const visibleCell=document.createElement('td');visibleCell.append(visible);tr.append(visibleCell);
     function ensure(){let item=draft.find(l=>l.gameKey===key);if(!item){item={gameKey:key,gameName:player?.name||'',discordId:select.value,label:label.value,visible:visible.checked};draft.push(item);}if(player)item.gameName=player.name;return item;}
     select.onchange=()=>{
       const previous=draft.find(l=>l.gameKey===key);
       if(select.value&&draft.some(l=>l.gameKey!==key&&l.discordId===select.value)){toast('そのDiscord参加者は別のプレイヤーに設定されています。');select.value=previous?.discordId||'';return;}
-      if(!select.value)draft=draft.filter(l=>l.gameKey!==key);else ensure().discordId=select.value;
+      if(!select.value){unlink();return;}ensure().discordId=select.value;
       label.disabled=demo||!select.value;visible.disabled=demo||!select.value;detail.textContent=select.value?'対応づけ済み':'Discord参加者を選択';edited();
     };
     label.oninput=()=>{if(select.value){ensure().label=label.value;edited();}};

@@ -40,3 +40,5 @@ body.overlay.overlay-preview{overflow:auto!important}
 .crew-row.color-background:not(.vertical)[data-name-position=below]>.crew-item>.crew-name{margin-top:6px;padding:3px 6px;background:#111820eb;border-radius:4px;line-height:1.4}
 .crew-row.vertical.color-background{align-items:stretch}
 .crew-row.vertical.color-background>.crew-item{width:auto;align-self:stretch}
+
+.unlink-button{display:block;margin-top:6px;padding:3px 7px;font-size:10px;background:transparent;color:#f1aca7;border:1px solid #78504e;border-radius:4px}.unlink-button:hover{background:#49302f}.unlink-button:disabled{opacity:.45}

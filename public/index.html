@@ -5,7 +5,7 @@
 <div class="shell">
   <header class="app-header">
     <a class="brand" href="#preview"><span class="brand-mark"><span data-character="#38FEDB" aria-hidden="true"></span></span><span>Streamer crew link<small>Among Us 配信アシスト</small></span></a>
-    <div class="header-actions"><span class="version">0.9.3 beta</span><button id="demo" class="secondary">デモを試す</button></div>
+    <div class="header-actions"><span class="version">0.9.4 beta</span><button id="demo" class="secondary">デモを試す</button></div>
   </header>
     <section class="status-grid" aria-label="現在の接続状態">
       <article><div class="status-heading"><span>ゲーム</span><span id="game-count" class="status-count">0人</span></div><div class="status-value"><i id="game-dot"></i><strong id="game-status">起動を待っています</strong></div><small id="game-version">Among Us・Nebula・SNRに対応</small></article>
@@ -37,7 +37,7 @@
       <section class="panel"><div class="panel-heading"><div><h1>メンバーの対応づけ</h1><p>ゲーム内の名前に、Discordの参加者を選びます。</p></div><span class="subtle-badge">設定は次回も使えます</span></div>
         <div class="preset-bar"><label for="presets">プリセット</label><select id="presets" aria-label="プリセット"></select><details class="preset-create"><summary>別名で保存</summary><div><input id="preset-name" placeholder="新しいプリセット名" maxlength="80" aria-label="新しいプリセット名"><button id="create-preset" class="secondary small">名前を付けて保存</button></div></details></div>
         <div class="table-wrap"><table><thead><tr><th scope="col">ゲーム内プレイヤー</th><th scope="col">Discordの参加者</th><th scope="col">配信用の名前</th><th scope="col">表示</th><th scope="col">順序</th></tr></thead><tbody id="mapping-rows"></tbody></table><div id="mapping-empty" class="empty-table"><strong>ゲームのロビーに参加してください</strong><p>参加者と色がここに表示されます。</p><button class="text-button" data-open-view="connections">接続状態を確認 →</button></div></div>
-        <p class="footnote">色はゲームから自動取得します。名前を変更した場合や、同じ名前の参加者がいる場合は対応づけを確認してください。</p><div id="unresolved" class="warning" hidden></div>
+        <p class="footnote">「解除」→「変更を保存」で登録を削除できます。ゲーム内にいる参加者は未設定の行として残ります。色はゲームから自動取得します。名前を変更した場合や、同じ名前の参加者がいる場合は対応づけを確認してください。</p><div id="unresolved" class="warning" hidden></div>
       </section>
     </section>
     <section id="connections" class="view" role="tabpanel" aria-labelledby="tab-connections" hidden>
