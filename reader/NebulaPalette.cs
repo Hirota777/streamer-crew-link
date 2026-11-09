@@ -34,7 +34,7 @@ sealed class NebulaPalette : IDisposable
         if(events.ReadField<int>("_version")!=version)throw new IOException("Meeting history changed while reading");
         return completed;
     }
-    public Dictionary<int,Shade> Read(int processId)
+    void Prepare(int processId)
     {
         target ??= DataTarget.AttachToProcess(processId, suspend:false,new DataTargetOptions{
             VerifyDacOnWindows=true,
@@ -49,9 +49,14 @@ sealed class NebulaPalette : IDisposable
             runtime=clr.CreateRuntime(dac);
         }
         runtime.FlushCachedData();
-        var type=runtime.EnumerateModules().Select(m=>m.GetTypeByName("Nebula.Modules.Cosmetics.DynamicPalette")).FirstOrDefault(t=>t!=null);
+    }
+    public SnrObservation ReadSnr(int processId){Prepare(processId);return SnrStateReader.Read(runtime!);}
+    public Dictionary<int,Shade> Read(int processId)
+    {
+        Prepare(processId);var active=runtime!;
+        var type=active.EnumerateModules().Select(m=>m.GetTypeByName("Nebula.Modules.Cosmetics.DynamicPalette")).FirstOrDefault(t=>t!=null);
         if(type==null)throw new IOException("Nebula palette is not loaded");
-        var domain=runtime.AppDomains.First();
+        var domain=active.AppDomains.First();
         var body=type.GetStaticFieldByName("PlayerColors")!.ReadObject(domain).AsArray();
         var shadow=type.GetStaticFieldByName("ShadowColors")!.ReadObject(domain).AsArray();
         var visor=type.GetStaticFieldByName("VisorColors")!.ReadObject(domain).AsArray();

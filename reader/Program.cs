@@ -23,7 +23,7 @@ long module = 0;
 bool is64 = true;
 string version = "";
 string lastStatus = "";
-var life=new PublicLifeTracker();int lifeProcess=0;var playerKeys=new Dictionary<int,string>();
+var life=new PublicLifeTracker();var snrMeetings=new SnrMeetingTracker();int lifeProcess=0;var playerKeys=new Dictionary<int,string>();
 void Status(string status,string message) {
     var serialized=JsonSerializer.Serialize(new {type="status",status,message});
     if(lastStatus!=serialized){Console.WriteLine(serialized);lastStatus=serialized;}
@@ -54,7 +54,7 @@ while(true){
         var processes=Process.GetProcessesByName("Among Us");
         if(processes.Length!=1){foreach(var p in processes)p.Dispose();Status("waiting",processes.Length>1?"ゲームが複数起動しています。1つにしてください。":"Among Usの起動を待っています");await Task.Delay(1500);continue;}
         game=processes[0];nebulaPalette.Dispose();
-        if(lifeProcess!=game.Id){life.Reset();playerKeys.Clear();lifeProcess=game.Id;}
+        if(lifeProcess!=game.Id){life.Reset();snrMeetings.Reset();playerKeys.Clear();lifeProcess=game.Id;}
         var assembly=game.Modules.Cast<ProcessModule>().FirstOrDefault(m=>string.Equals(m.ModuleName,"GameAssembly.dll",StringComparison.OrdinalIgnoreCase));
         if(assembly==null){game.Dispose();game=null;Status("waiting","ゲームの読み込みを待っています");await Task.Delay(1500);continue;}
         using(var file=File.OpenRead(assembly.FileName??throw new IOException())){
@@ -80,8 +80,10 @@ while(true){
     string paletteFailure="";
     if(nebula){try{palette=nebulaPalette.Read(game.Id);}catch(Exception error){paletteFailure=NebulaPalette.FailureMessage(error);nebulaPalette.Dispose();}}
     var mem=new Memory(handle,is64);var phaseBefore=ReadPhase(mem).phase;var list=mem.Chain(module,profile.GetProperty("AllPlayerPtrOffsets"));
-    int? completedMeetings=null;bool meetingReadFailed=false;
-    if(nebula){try{completedMeetings=nebulaPalette.CompletedMeetings();meetingReadFailed=completedMeetings==null&&phaseBefore is GamePhase.Meeting or GamePhase.Exile or GamePhase.Tasks;}catch{meetingReadFailed=true;}}
+    int? completedMeetings=null;bool stateReadFailed=false;
+    SnrObservation? snrBefore=null;
+    if(snr&&snrColors.Count>0){try{snrBefore=nebulaPalette.ReadSnr(game.Id);}catch{}}
+    if(nebula){try{completedMeetings=nebulaPalette.CompletedMeetings();stateReadFailed=completedMeetings==null&&phaseBefore is GamePhase.Meeting or GamePhase.Exile or GamePhase.Tasks;}catch{stateReadFailed=true;}}
     if(list==0){Status("waiting","ゲームに接続しました。ロビーへの参加を待っています");Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,modVersion="外部読取",players=Array.Empty<object>()}}));await Task.Delay(600);continue;}
     var count=mem.Int(list+profile.GetProperty("PlayerCountOffsets")[0].GetInt32());
     if(count<0||count>50)throw new IOException();
@@ -107,15 +109,32 @@ while(true){
     if(mem.Int(list+profile.GetProperty("PlayerCountOffsets")[0].GetInt32())!=count)throw new IOException();
     var (phase,votedPlayer)=ReadPhase(mem);
     if(phaseBefore!=phase){await Task.Delay(60);continue;}
-    if(nebula&&completedMeetings.HasValue){try{if(nebulaPalette.CompletedMeetings()!=completedMeetings){await Task.Delay(60);continue;}}catch{completedMeetings=null;meetingReadFailed=true;}}
-    HashSet<int>? deferredMadmateDeaths=null;
+    if(nebula&&completedMeetings.HasValue){try{if(nebulaPalette.CompletedMeetings()!=completedMeetings){await Task.Delay(60);continue;}}catch{completedMeetings=null;stateReadFailed=true;}}
+    HashSet<int>? deferredCollateralDeaths=null;
     if(nebula&&phase is not (GamePhase.Lobby or GamePhase.Menu or GamePhase.Meeting)){
-        try{deferredMadmateDeaths=nebulaPalette.MadmateCollateralDeaths(players.Where(p=>p.dead&&life.State(p.playerId)=="alive"&&!life.IsDeferred(p.playerId)).Select(p=>p.playerId).ToHashSet());}
-        catch{meetingReadFailed=true;}
+        try{deferredCollateralDeaths=nebulaPalette.MadmateCollateralDeaths(players.Where(p=>p.dead&&life.State(p.playerId)=="alive"&&!life.IsDeferred(p.playerId)).Select(p=>p.playerId).ToHashSet());}
+        catch{stateReadFailed=true;}
+    }
+    if(snr){
+        try{
+            if(snrColors.Count==0)throw new IOException("SNR meeting version unsupported");
+            var snrFrame=nebulaPalette.ReadSnr(game.Id);
+            if(snrBefore!=null&&!snrBefore.SameAs(snrFrame)){await Task.Delay(30);continue;}
+            snrMeetings.Update(phase,snrFrame,Environment.TickCount64);
+            if(phase is not (GamePhase.Lobby or GamePhase.Menu or GamePhase.Meeting)){
+                deferredCollateralDeaths=new HashSet<int>();
+                foreach(var p in players.Where(p=>p.dead&&life.State(p.playerId)=="alive"&&!life.IsDeferred(p.playerId))){
+                    if(!snrFrame.FinalStates.TryGetValue(p.playerId,out var status)||status is 0 or 1)throw new IOException("SNR death kind not settled");
+                    if(SnrObservation.IsCollateral(status))deferredCollateralDeaths.Add(p.playerId);
+                }
+            }
+            completedMeetings=snrMeetings.Completed;
+        }catch{stateReadFailed=true;}
     }
     // If timing classification is temporarily incomplete, retain the previous
     // public states and retry. Never reveal a collateral death speculatively.
-    if(!nebula||!meetingReadFailed)life.Update(phase,players.Select(p=>new LifeSample(p.playerId,p.dead)).ToArray(),votedPlayer,publicCompletedMeetings:completedMeetings,deferredMadmateDeaths:deferredMadmateDeaths);
+    if(!stateReadFailed)life.Update(phase,players.Select(p=>new LifeSample(p.playerId,p.dead)).ToArray(),votedPlayer,publicCompletedMeetings:completedMeetings,deferredCollateralDeaths:deferredCollateralDeaths,confirmedExiles:snr?snrMeetings.ConfirmedExiles(Environment.TickCount64):null);
+    if(snr&&!stateReadFailed)snrMeetings.Published(life);
     foreach(var p in players)playerKeys[p.playerId]="name:"+p.name;
     var duplicates=players.GroupBy(p=>p.name).Where(g=>g.Count()>1).Select(g=>g.Key).ToHashSet();
     var result=players.Where(p=>!duplicates.Contains(p.name)).Select(p=>{
@@ -123,11 +142,11 @@ while(true){
         (nebula?palette:snrColors).TryGetValue(nebula?p.playerId:p.colorId,out var shade);
         return new {key="name:"+p.name,name=p.name,lifeState=life.State(p.playerId),colorId=p.colorId,color=dynamicColor?shade?.Body??"#8794a3":p.colorId<colors.Length?colors[p.colorId]:"#8794a3",shadowColor=shade?.Shadow,visorColor=shade?.Visor,colorSource=nebula?"nebula":snr?"snr":"vanilla",colorKnown=dynamicColor?shade!=null:p.colorId<colors.Length,stable=false};
     }).ToArray();
-    Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,scene=phase.ToString(),lifeTracking=phase!=GamePhase.Unknown,modVersion=nebula?"Nebula 動的カラー":snr?"SNR 追加カラー":"通常カラー",players=result,departedKeys}}));
-    Status(meetingReadFailed?"error":"connected",meetingReadFailed?"Nebulaの会議終了情報を取得できません。状態更新の対応確認が必要です。":duplicates.Count>0?"同名の参加者がいます。名前を一意にしてください。":nebula&&palette.Count==0?paletteFailure.Length>0?paletteFailure:"Nebulaの色取得を待っています（標準色への置き換えは行いません）":snr&&snrColors.Count==0?"SNRの追加色データを確認できません。このSNRバージョンの対応確認が必要です。":"外部読取で接続中（ゲームへの追加導入なし）");
+    Console.WriteLine(JsonSerializer.Serialize(new {type="snapshot",game=new {version,scene=phase.ToString(),lifeTracking=phase!=GamePhase.Unknown&&!stateReadFailed,modVersion=nebula?"Nebula 動的カラー":snr?"SNR 追加カラー":"通常カラー",players=result,departedKeys}}));
+    Status(stateReadFailed?"error":"connected",stateReadFailed?(snr?"SNRの会議・死亡情報を取得できません。対応バージョンと状態更新を確認してください。":"Nebulaの会議終了情報を取得できません。状態更新の対応確認が必要です。"):duplicates.Count>0?"同名の参加者がいます。名前を一意にしてください。":nebula&&palette.Count==0?paletteFailure.Length>0?paletteFailure:"Nebulaの色取得を待っています（標準色への置き換えは行いません）":snr&&snrColors.Count==0?"SNRの追加色データを確認できません。このSNRバージョンの対応確認が必要です。":"外部読取で接続中（ゲームへの追加導入なし）");
  }catch(UnauthorizedAccessException){Status("error","ゲーム情報を読み取れません。ゲームとアプリの実行権限を確認してください。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}
  catch{Status("waiting","ゲーム情報の更新を待っています。ロビー参加後も続く場合は対応確認が必要です。");if(handle!=IntPtr.Zero)Native.CloseHandle(handle);handle=IntPtr.Zero;game?.Dispose();game=null;}
- await Task.Delay(600);
+ await Task.Delay(snr?100:600);
 }
 
 sealed class Memory {

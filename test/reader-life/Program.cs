@@ -69,3 +69,34 @@ tracker.Update(GamePhase.Lobby,Samples(true,true),null,200,0);Check(tracker,1,"a
 tracker.Update(GamePhase.Tasks,Samples(false,false),null,300,0);Check(tracker,1,"alive");
 tracker.Update(GamePhase.Meeting,Samples(false,true),null,400,0);Check(tracker,1,"dead");
 Console.WriteLine("Madmate timing passed: source exile and other deaths unchanged, collateral withheld through exile/completion/tasks/unknown, next meeting releases once, lobby/new round/reset clear pending state.");
+
+static SnrObservation F(int count,bool ready,int airship=0,params (int id,int status)[] states)=>new(count,ready,airship,states.ToDictionary(s=>s.id,s=>s.status));
+var snr=new SnrMeetingTracker();tracker.Reset();
+snr.Update(GamePhase.Tasks,F(-1,true),0);snr.Update(GamePhase.Meeting,F(0,true),100);
+tracker.Update(GamePhase.Meeting,Samples(false,false,false,false),0,100,snr.Completed);
+snr.Update(GamePhase.Exile,F(0,false,0,(0,5),(1,4),(2,23),(3,26)),200);
+tracker.Update(GamePhase.Exile,Samples(true,true,true,true),0,200,snr.Completed,new HashSet<int>{1,2,3});
+Check(tracker,0,"exiled");Check(tracker,1,"alive");Check(tracker,2,"alive");Check(tracker,3,"alive");
+snr.Update(GamePhase.Tasks,F(0,true,0,(0,5),(1,4),(2,23),(3,26)),800);
+if(snr.Completed!=1)throw new Exception("SNR completion not observed");
+tracker.Update(GamePhase.Tasks,Samples(true,true,true,true),null,800,snr.Completed,confirmedExiles:snr.ConfirmedExiles(800));snr.Published(tracker);
+Check(tracker,1,"alive");Check(tracker,2,"alive");Check(tracker,3,"alive");
+snr.Update(GamePhase.Meeting,F(1,true,0,(0,5),(1,4),(2,23),(3,26)),1000);
+tracker.Update(GamePhase.Meeting,Samples(true,true,true,true),null,1000,snr.Completed,new HashSet<int>{1,2,3});
+Check(tracker,1,"dead");Check(tracker,2,"dead");Check(tracker,3,"dead");
+// Native vote target absent + delayed raw flag: retain SNR's confirmed exile.
+snr.Reset();tracker.Reset();snr.Update(GamePhase.Tasks,F(-1,true),0);snr.Update(GamePhase.Meeting,F(0,true),100);tracker.Update(GamePhase.Meeting,Samples(false,false),null,100,0);
+snr.Update(GamePhase.Tasks,F(0,true,0,(0,5),(1,1)),200);
+tracker.Update(GamePhase.Tasks,Samples(false,false),null,200,snr.Completed,confirmedExiles:snr.ConfirmedExiles(200));
+snr.Update(GamePhase.Tasks,F(0,true,0,(0,5),(1,1)),300);
+tracker.Update(GamePhase.Tasks,Samples(true,false),null,300,snr.Completed,confirmedExiles:snr.ConfirmedExiles(300));snr.Published(tracker);Check(tracker,0,"exiled");
+tracker.Update(GamePhase.Tasks,Samples(true,true),null,400,snr.Completed);Check(tracker,1,"alive");
+// Airship wrap marker missed between polls, skip vote and initial attachment.
+snr.Reset();snr.Update(GamePhase.Tasks,F(2,true,4,(0,5)),0);if(snr.Completed!=0)throw new Exception("Initial history republished");
+snr.Update(GamePhase.Meeting,F(3,true,4,(0,5)),100);snr.Update(GamePhase.Tasks,F(3,true,5,(0,5)),200);if(snr.Completed!=1)throw new Exception("Airship completion missed");
+snr.Reset();snr.Update(GamePhase.Meeting,F(0,true),0);snr.Update(GamePhase.Tasks,F(0,false),100);snr.Update(GamePhase.Tasks,F(0,true),700);if(snr.Completed!=1)throw new Exception("Skip completion missed");
+snr.Update(GamePhase.Tasks,F(0,true),800);if(snr.Completed!=1)throw new Exception("Duplicate completion");
+snr.Update(GamePhase.Lobby,F(-1,true),900);if(snr.Completed!=0||snr.ConfirmedExiles(900).Count!=0)throw new Exception("SNR reset failed");
+Console.WriteLine("SNR shared timing passed: revenge/lovers/vampire deferred to next meeting, normal exile + missing native target + delayed raw flag, no task kill leak, durable Airship marker, skipped vote, initial baseline and round reset.");
+
+snr.Reset();snr.Update(GamePhase.Tasks,F(0,true),0);snr.Update(GamePhase.Meeting,F(0,true),100);snr.Update(GamePhase.Tasks,F(0,false),200);snr.Update(GamePhase.Tasks,F(0,true),800);if(snr.Completed!=1)throw new Exception("SNR native meeting edge not tracked");

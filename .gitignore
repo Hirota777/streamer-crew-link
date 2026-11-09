@@ -29,3 +29,6 @@ test/reader-meeting/obj/
 
 test/reader-meeting-probe/bin/
 test/reader-meeting-probe/obj/
+
+test/reader-snr-state/bin/
+test/reader-snr-state/obj/

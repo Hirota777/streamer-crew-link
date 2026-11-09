@@ -17,14 +17,15 @@ sealed class PublicLifeTracker
     internal string State(int id)=>states.GetValueOrDefault(id,"alive");
     internal bool IsDeferred(int id)=>delayedDeaths.Contains(id);
     void Publish(LifeSample player){if(!delayedDeaths.Contains(player.Id))states[player.Id]=player.Dead?(State(player.Id)=="exiled"?"exiled":"dead"):"alive";}
-    internal void Update(GamePhase phase,IReadOnlyList<LifeSample> players,int? votedPlayer,long? timestamp=null,int? publicCompletedMeetings=null,IReadOnlySet<int>? deferredMadmateDeaths=null)
+    internal void Update(GamePhase phase,IReadOnlyList<LifeSample> players,int? votedPlayer,long? timestamp=null,int? publicCompletedMeetings=null,IReadOnlySet<int>? deferredCollateralDeaths=null,IReadOnlySet<int>? confirmedExiles=null)
     {
         var now=timestamp??Environment.TickCount64;
         var enteringMeeting=phase==GamePhase.Meeting&&previous!=GamePhase.Meeting;
         if(enteringMeeting)delayedDeaths.Clear();
-        else if(deferredMadmateDeaths!=null)foreach(var player in players)if(player.Dead&&State(player.Id)=="alive"&&deferredMadmateDeaths.Contains(player.Id))delayedDeaths.Add(player.Id);
+        else if(deferredCollateralDeaths!=null)foreach(var player in players)if(player.Dead&&State(player.Id)=="alive"&&deferredCollateralDeaths.Contains(player.Id))delayedDeaths.Add(player.Id);
         var completed=publicCompletedMeetings.HasValue&&completedMeetings.HasValue&&publicCompletedMeetings>completedMeetings;
         if(publicCompletedMeetings.HasValue)completedMeetings=publicCompletedMeetings;
+        if(confirmedExiles!=null&&phase is not (GamePhase.Lobby or GamePhase.Menu or GamePhase.Meeting))foreach(var player in players)if(player.Dead&&!delayedDeaths.Contains(player.Id)&&confirmedExiles.Contains(player.Id))states[player.Id]="exiled";
         if(phase==GamePhase.Unknown){if(completed)foreach(var player in players)Publish(player);return;}
         if((phase is GamePhase.Lobby or GamePhase.Menu) || (phase==GamePhase.Tasks&&(previous is GamePhase.Lobby or GamePhase.Ended))){
             states.Clear();candidate=null;awaitingExile=false;
