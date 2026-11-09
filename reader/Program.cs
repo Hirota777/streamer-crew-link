@@ -108,7 +108,14 @@ while(true){
     var (phase,votedPlayer)=ReadPhase(mem);
     if(phaseBefore!=phase){await Task.Delay(60);continue;}
     if(nebula&&completedMeetings.HasValue){try{if(nebulaPalette.CompletedMeetings()!=completedMeetings){await Task.Delay(60);continue;}}catch{completedMeetings=null;meetingReadFailed=true;}}
-    life.Update(phase,players.Select(p=>new LifeSample(p.playerId,p.dead)).ToArray(),votedPlayer,publicCompletedMeetings:completedMeetings);
+    HashSet<int>? deferredMadmateDeaths=null;
+    if(nebula&&phase is not (GamePhase.Lobby or GamePhase.Menu or GamePhase.Meeting)){
+        try{deferredMadmateDeaths=nebulaPalette.MadmateCollateralDeaths(players.Where(p=>p.dead&&life.State(p.playerId)=="alive"&&!life.IsDeferred(p.playerId)).Select(p=>p.playerId).ToHashSet());}
+        catch{meetingReadFailed=true;}
+    }
+    // If timing classification is temporarily incomplete, retain the previous
+    // public states and retry. Never reveal a collateral death speculatively.
+    if(!nebula||!meetingReadFailed)life.Update(phase,players.Select(p=>new LifeSample(p.playerId,p.dead)).ToArray(),votedPlayer,publicCompletedMeetings:completedMeetings,deferredMadmateDeaths:deferredMadmateDeaths);
     foreach(var p in players)playerKeys[p.playerId]="name:"+p.name;
     var duplicates=players.GroupBy(p=>p.name).Where(g=>g.Count()>1).Select(g=>g.Key).ToHashSet();
     var result=players.Where(p=>!duplicates.Contains(p.name)).Select(p=>{

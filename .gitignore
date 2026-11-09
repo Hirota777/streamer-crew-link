@@ -26,3 +26,6 @@ test/reader-life/obj/
 
 test/reader-meeting/bin/
 test/reader-meeting/obj/
+
+test/reader-meeting-probe/bin/
+test/reader-meeting-probe/obj/

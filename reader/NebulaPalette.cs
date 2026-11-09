@@ -6,6 +6,7 @@ sealed class NebulaPalette : IDisposable
     ClrRuntime? runtime;
     LegacyDacTrust? legacyTrust;
     public record Shade(string Body,string Shadow,string Visor);
+    public HashSet<int> MadmateCollateralDeaths(IReadOnlySet<int> candidates)=>NebulaDeathTiming.Read(runtime??throw new IOException("Death timing runtime unavailable"),candidates);
     // Read only the public meeting-end event identity. Do not inspect role,
     // killer, target masks or positional data from the statistics history.
     public int? CompletedMeetings()

@@ -50,3 +50,22 @@ tracker.Update(GamePhase.Lobby,Samples(false,false),null,200,0);Check(tracker,0,
 tracker.Update(GamePhase.Tasks,Samples(false,false),null,300,0);
 tracker.Update(GamePhase.Tasks,Samples(true,false),null,400,1);Check(tracker,0,"dead");
 Console.WriteLine("Nebula completion checks passed: late/multiple exiles without native target, unchanged event hides task kills, initial baseline, unknown native phase and new-game reset.");
+
+// Madmate itself is still exiled immediately. Only its collateral waits.
+tracker.Reset();tracker.Update(GamePhase.Tasks,Samples(false,false,false),null,0,0);
+tracker.Update(GamePhase.Meeting,Samples(false,false,false),0,100,0);
+tracker.Update(GamePhase.Exile,Samples(true,true,true),0,200,0,new HashSet<int>{1});
+Check(tracker,0,"exiled");Check(tracker,1,"alive");Check(tracker,2,"dead");
+tracker.Update(GamePhase.Tasks,Samples(true,true,true),null,1000,1);Check(tracker,1,"alive");
+tracker.Update(GamePhase.Unknown,Samples(true,true,true),null,1100,2);Check(tracker,1,"alive");
+tracker.Update(GamePhase.Tasks,Samples(true,true,true),null,3000,2);Check(tracker,1,"alive");
+tracker.Update(GamePhase.Meeting,Samples(true,true,true),null,4000,2,new HashSet<int>{1});Check(tracker,1,"dead");
+tracker.Update(GamePhase.Tasks,Samples(true,true,true),null,5000,3,new HashSet<int>{1});Check(tracker,1,"dead");
+tracker.Update(GamePhase.Lobby,Samples(false,false,false),null,6000,0);Check(tracker,1,"alive");
+tracker.Update(GamePhase.Tasks,Samples(false,false,false),null,7000,0);Check(tracker,1,"alive");
+tracker.Reset();tracker.Update(GamePhase.Meeting,Samples(false,false),0,0,0);
+tracker.Update(GamePhase.Exile,Samples(true,true),0,100,0,new HashSet<int>{1});
+tracker.Update(GamePhase.Lobby,Samples(true,true),null,200,0);Check(tracker,1,"alive");
+tracker.Update(GamePhase.Tasks,Samples(false,false),null,300,0);Check(tracker,1,"alive");
+tracker.Update(GamePhase.Meeting,Samples(false,true),null,400,0);Check(tracker,1,"dead");
+Console.WriteLine("Madmate timing passed: source exile and other deaths unchanged, collateral withheld through exile/completion/tasks/unknown, next meeting releases once, lobby/new round/reset clear pending state.");

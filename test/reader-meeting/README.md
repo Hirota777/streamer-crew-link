@@ -9,3 +9,5 @@ Installed Nebula metadata inspected: `Nebula.Patches.NebulaExileWrapUp.WrapUpAnd
 An actual multiplayer meeting in the user's Nebula version remains necessary for end-to-end confirmation.
 
 Build a second fixture with `-p:DefineConstants=EVENTS_PROPERTY -o <output>` and pass `<output>/Nebula.dll` as the third argument to `check.mjs`. This covers the newer private auto-property backing field `<allEvents>k__BackingField` in addition to the older `allEvents` field. Both must return exactly two meeting completions. The current live Nebula process reproduced the missing-field error before the fix and returned a valid meeting count after it.
+
+MADMATE timing classification uses a test-only probe in `../reader-meeting-probe/Probe.csproj`. Build that project and pass its executable as the probe argument to `check.mjs`. The production reader diagnostic exports only the meeting count; classification counts remain in the test helper. Fixture cases distinguish MADMATE collateral, other source-role collateral, another current death cause, and superseded earlier events.
