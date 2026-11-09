@@ -18,7 +18,14 @@ static class NebulaDeathTiming
         var players=new Dictionary<int,ClrObject>();
         for(int i=0;i<count;i++){var entry=entries.GetStructValue(i);var player=entry.ReadObjectField("value");if(!player.IsNull)players[entry.ReadField<byte>("key")]=player;}
         var embroidered=Type("Nebula.Player.PlayerState").GetStaticFieldByName("Embroiled")!.ReadObject(domain);
-        var pending=candidates.Where(id=>players.TryGetValue(id,out var player)&&player.ReadObjectField("MyState").Address==embroidered.Address).ToHashSet();
+        var pending=new HashSet<int>();
+        foreach(var id in candidates){
+            if(!players.TryGetValue(id,out var player))throw new IOException("Death timing player not ready");
+            var state=player.ReadObjectField("MyState");
+            if(state.IsNull)throw new IOException("Death timing state not ready");
+            if(state.Address==embroidered.Address)pending.Add(id);
+        }
+        if(dictionary.ReadField<int>("_version")!=dictionaryVersion)throw new IOException("Death timing changed while reading");
         if(pending.Count==0)return result;
         var tag=Type("Nebula.Game.Statistics.EventDetail").GetStaticFieldByName("Embroil")!.ReadObject(domain);
         var statistics=manager.ReadObjectField("<GameStatistics>k__BackingField");
@@ -40,7 +47,10 @@ static class NebulaDeathTiming
             if(!latest.TryGetValue(id,out var death))throw new IOException("Collateral origin not ready");
             if(death.source==null)continue;
             if(!players.TryGetValue(death.source.Value,out var source))throw new IOException("Collateral source not ready");
-            if(source.ReadObjectField("myRole").Type?.Name=="Nebula.Roles.Crewmate.Madmate+Instance")result.Add(id);
+            var role=source.ReadObjectField("myRole");
+            if(role.IsNull)throw new IOException("Collateral source role not ready");
+            var roleName=role.Type?.Name??throw new IOException("Collateral source role not ready");
+            if(roleName=="Nebula.Roles.Crewmate.Madmate+Instance")result.Add(id);
         }
         return result;
     }
