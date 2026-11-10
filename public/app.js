@@ -1,7 +1,7 @@
 import {renderCrew} from './render.js';
 import {appendCharacter} from './icons.js';
 const $=selector=>document.querySelector(selector);
-let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,editRevision=0,lastKey='',authUiSaved;
+let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,creatingPreset=false,editRevision=0,lastKey='',authUiSaved;
 const views=['preview','mapping','connections'];
 const settingKeys=['size','gap','characterScale','badgeSize','nameSize','colorBackground','bounceSpeaking','showCharacter','horizontalNamePosition','verticalNamePosition','orientation','showStatus','showNames','dimIdle'];
 for(const node of document.querySelectorAll('[data-character]'))appendCharacter(node,{color:node.dataset.character,colorKnown:true,lifeState:'alive'});
@@ -44,6 +44,9 @@ function renderPreview(){
 }
 function updateSaveState(){
   const pending=dirty||settingsDirty,demo=state?.mode==='demo';
+  for(const key of settingKeys)$('#'+key).disabled=creatingPreset;
+  if(creatingPreset)for(const node of document.querySelectorAll('#mapping-rows input,#mapping-rows select,#mapping-rows button'))node.disabled=true;
+  $('#create-preset').disabled=demo||saving;$('#preset-name').disabled=demo||saving;$('#presets').disabled=saving;$('#demo').disabled=creatingPreset;$('#clear-data').disabled=creatingPreset;
   $('#save').disabled=!pending||saving;$('#discard').hidden=!pending;$('#discard').disabled=saving;
   $('#save-state').classList.toggle('dirty',pending);
   $('#save-label').textContent=saving?'保存しています':pending?'未保存の変更があります':'保存済み';
@@ -104,7 +107,7 @@ function receive(next){
   if(authUiSaved!==auth.saved){$('#discord-form').elements.channelId.value=auth.channelId||'';authUiSaved=auth.saved;}
   $('#notice').hidden=true;$('#notice').textContent='';$('#demo').textContent=demo?'実際の接続に戻る':'デモを試す';
   for(const key of settingKeys)$('#'+key).disabled=false;
-  $('.life-help').textContent=!demo&&next.game.online&&!next.game.lifeTracking?'会議情報を確認できないため、死亡マークの自動更新を保留しています。':'死亡は会議開始時、吊られは会議終了後の追放確定時に更新します。途中起動時は次の会議から同期します。';
+  $('.life-help').textContent=!demo&&next.game.online&&!next.game.lifeTracking?'会議情報を確認できないため、死亡マークの自動更新を保留しています。':'死亡は会議開始時、追放は会議終了後の確定時に更新します。NebulaのMADMATE巻き添えと、SNRの道連れ・後追いは次の会議開始時に反映します。途中起動時は次の会議から同期します。';
   $('#overlay-url').value=next.overlayUrl;
   const count=next.rows.filter(row=>row.visible&&row.player&&row.member).length;$('#member-count').textContent=count;
   $('#mapping-status').textContent=next.unmapped?next.unmapped+'人が未設定です':count?'保存したメンバーを表示中':'接続後にメンバーを対応づけます';
@@ -124,7 +127,7 @@ $('#preview-actual').onclick=()=>{const actual=$('#preview-viewport').classList.
 $('#save').onclick=async()=>{if(saving)return;saving=true;const revision=editRevision;updateSaveState();try{const result=await post('/api/save',state.mode==='demo'?{settings:settings()}:{links:draft,settings:settings()});if(revision===editRevision){dirty=false;settingsDirty=false;}receive(result);toast('設定を保存し、OBSに反映しました。');}catch(error){toast(error.message);}finally{saving=false;updateSaveState();}};
 $('#discard').onclick=()=>{dirty=false;settingsDirty=false;lastKey='';receive(state);toast('未保存の変更を元に戻しました。');};
 $('#presets').onchange=async event=>{if(dirty||settingsDirty){event.target.value=state.preset.id;toast('変更を保存するか、元に戻してから切り替えてください。');return;}try{lastKey='';receive(await post('/api/presets/select',{id:event.target.value}));}catch(error){toast(error.message);}};
-$('#create-preset').onclick=async()=>{try{if(state.mode==='demo')return;if(!$('#preset-name').value.trim())throw Error('プリセット名を入力してください。');await post('/api/save',{links:draft,settings:settings()});const result=await post('/api/presets/create',{name:$('#preset-name').value});dirty=false;settingsDirty=false;lastKey='';receive(result);$('#preset-name').value='';$('.preset-create').open=false;toast('新しいプリセットを保存しました。');}catch(error){toast(error.message);}};
+$('#create-preset').onclick=async()=>{if(saving||state.mode==='demo')return;const name=$('#preset-name').value.trim();if(!name){toast('プリセット名を入力してください。');return;}saving=true;creatingPreset=true;updateSaveState();try{await post('/api/save',{links:draft,settings:settings()});const result=await post('/api/presets/create',{name});dirty=false;settingsDirty=false;lastKey='';receive(result);$('#preset-name').value='';$('.preset-create').open=false;toast('新しいプリセットを保存しました。');}catch(error){toast(error.message);}finally{creatingPreset=false;saving=false;table();updateSaveState();}};
 for(const key of settingKeys)$('#'+key).oninput=()=>{settingsDirty=true;editRevision++;updateOutputs();renderPreview();updateSaveState();};
 $('#discord-form').onsubmit=async event=>{event.preventDefault();if(dirty||settingsDirty){toast('変更を保存するか、元に戻してから接続してください。');return;}const options=Object.fromEntries(new FormData(event.target));options.remember=$('#remember-discord').checked;$('#connect-discord').disabled=true;try{receive(await post('/api/discord/connect',options));toast('Discordと連携しました。');}catch(error){toast(error.message);}finally{$('#connect-discord').disabled=state.discord.auth.busy;}};
 $('#disconnect-discord').onclick=async()=>{try{receive(await post('/api/discord/disconnect',{}));}catch(error){toast(error.message);}};
