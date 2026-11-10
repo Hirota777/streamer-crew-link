@@ -1,7 +1,7 @@
 import {renderCrew} from './render.js';
 import {appendCharacter} from './icons.js';
 const $=selector=>document.querySelector(selector);
-let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,creatingPreset=false,editRevision=0,lastKey='',authUiSaved;
+let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,creatingPreset=false,editRevision=0,lastKey='',authUiSaved,layoutSource;
 const views=['preview','mapping','connections'];
 const settingKeys=['displaySource','size','gap','characterScale','badgeSize','nameSize','colorBackground','bounceSpeaking','showCharacter','horizontalNamePosition','verticalNamePosition','orientation','showStatus','showNames','dimIdle'];
 for(const node of document.querySelectorAll('[data-character]'))appendCharacter(node,{color:node.dataset.character,colorKnown:true,lifeState:'alive'});
@@ -39,6 +39,8 @@ function renderPreview(){
   const count=renderCrew($('#preview-crew'),{...state,rows,preset:{...state.preset,settings:settings()}});
   $('#preview-viewport').classList.toggle('portrait',settings().orientation==='vertical');
   $('#preview-empty').hidden=count>0;
+  $('#preview-empty-title').textContent=settings().displaySource==='game'?'Among Usのロビーに参加してください':'ここに配信メンバーが並びます';
+  $('#preview-empty-description').textContent=settings().displaySource==='game'?'参加者を自動表示します。':'ゲームとDiscordを接続し、メンバーを対応づけてください。';
   const badge=$('#preview-mode');badge.textContent=state.mode==='demo'?'デモ表示':dirty||settingsDirty?'未保存のプレビュー':'本番表示';badge.classList.toggle('demo',state.mode==='demo');
   fitPreview();
 }
@@ -46,6 +48,15 @@ function updateSaveState(){
   const pending=dirty||settingsDirty,demo=state?.mode==='demo';
   for(const key of settingKeys)$('#'+key).disabled=creatingPreset;
   const gameOnly=$('#displaySource').value==='game';
+  $('.status-grid').classList.toggle('game-only',gameOnly);$('.connection-grid').classList.toggle('game-only',gameOnly);
+  $('#source-help').textContent=gameOnly?'ゲーム内の名前とクルーを自動表示':'Discord画像とゲームの色を合わせて表示';
+  $('#size-label').textContent=gameOnly?'クルーの大きさ':'Discordアイコンの大きさ';
+  $('#horizontalNamePosition').closest('label').hidden=$('#orientation').value!=='horizontal';
+  $('#verticalNamePosition').closest('label').hidden=$('#orientation').value!=='vertical';
+  $('#mapping-description').textContent=gameOnly?'ゲームの参加者を自動で表示します。':'ゲーム内の名前にDiscordの参加者を選びます。';
+  $('#discord-connection-note').textContent=gameOnly?'使用しない（必要な場合だけ開く）':'サーバーの通話に参加してください';
+  if(layoutSource!==$('#displaySource').value){$('#discord-connection').open=!gameOnly;layoutSource=$('#displaySource').value;}
+
   for(const key of ['bounceSpeaking','dimIdle','showCharacter']){$('#'+key).disabled=creatingPreset||gameOnly;$('#'+key).closest('label').hidden=gameOnly;}
   $('#game-only-note').hidden=!gameOnly;$('#mapping-table').hidden=gameOnly;$('#mapping-hint').hidden=gameOnly;
   if(creatingPreset)for(const node of document.querySelectorAll('#mapping-rows input,#mapping-rows select,#mapping-rows button'))node.disabled=true;
@@ -98,7 +109,7 @@ function receive(next){
   const gameMode=/SNR|SuperNewRoles/.test(next.game.modVersion)?'SNR':next.game.modVersion.includes('Nebula')?'Nebula':'Among Us';
   $('#game-version').textContent=demo?'表示確認用の架空メンバー':next.game.online&&next.game.players.length&&!/待ち|同名|確認/.test(next.reader?.message||'')?gameMode+' · 色を自動取得しています':next.reader?.message||'Among Usの起動を待っています';
   const discordStatus=next.discord.status,discordOptional=next.preset.settings.displaySource==='game';
-  $('#discord-status').textContent=discordOptional?'連携不要':demo?'デモ表示中':auth.busy?'接続しています':auth.needsAuthorization?'許可が必要です':discordStatus.startsWith('切断しました')?'切断しています':discordStatus.length>25?'接続を確認してください':discordStatus;
+  $('#discord-status').textContent=discordOptional?'使用しない':demo?'デモ表示中':auth.busy?'接続しています':auth.needsAuthorization?'許可が必要です':discordStatus.startsWith('切断しました')?'切断しています':discordStatus.length>25?'接続を確認してください':discordStatus;
   $('#discord-dot').classList.toggle('online',!discordOptional&&(demo||discordStatus==='接続中'));$('#voice-count').textContent=discordOptional?'—':next.discord.members.length+'人';
   $('#discord-channel').textContent=discordOptional?'Among Usのみで表示中':next.discord.channel||(auth.busy?discordStatus:auth.needsAuthorization?'接続画面から許可をやり直してください':discordStatus.length>25?discordStatus:'サーバーの通話に参加してください');
   $('#auth-summary').textContent=discordOptional?'現在の表示モードではDiscordの連携は不要です。Discord画像や発言検出を使う場合は、表示モードをDiscord連携に戻してください。':auth.failure?discordStatus:auth.needsAuthorization?discordStatus+' Discordで許可をやり直してください。':auth.busy?'Discordへの接続を進めています。許可画面が開いた場合は内容を確認してください。':auth.saved?(auth.autoConnect?'認証を保存済みです。次回の起動時も自動接続します。':'認証を保存済みです。「保存した認証で接続」から再開できます。'):auth.storageAvailable?'初回だけブラウザーでDiscordの許可を行います。保存すると、次回から自動接続します。':'認証の保存はWindowsデスクトップ版で利用できます。';

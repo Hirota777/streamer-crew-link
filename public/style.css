@@ -58,3 +58,13 @@ body.overlay.overlay-preview{overflow:auto!important}
 .crew-row.game-only.color-background:not(.vertical)>.crew-item{width:calc(var(--crew-size,80px)*var(--character-scale,1) + 16px)}
 
 .controls label[hidden]{display:none}
+
+/* Common presets and mode-specific workspace controls. */
+.shell>.preset-bar{width:100%;max-width:1200px;margin:0 auto;padding:4px 26px 10px;gap:8px 12px}.preset-help{font-size:10px;color:var(--muted)}
+.status-grid.game-only{grid-template-columns:1fr auto 1fr}.status-grid.game-only #discord-status-card{align-self:center;padding:4px 10px;background:transparent;border-color:transparent}.status-grid.game-only #discord-status-card .status-heading{margin-bottom:2px}.status-grid.game-only #discord-status-card .status-value strong{font-size:10px;color:var(--muted)}
+.status-grid.game-only #discord-status-card #voice-count,.status-grid.game-only #discord-status-card #discord-channel,.status-grid.game-only #discord-status-card #discord-dot{display:none}
+.connection-grid.game-only{grid-template-columns:1fr}.connection-card>summary.panel-heading{cursor:pointer}.connection-card[open]>summary .disclosure{transform:rotate(45deg)}
+.appearance-help{border-top:1px solid var(--line);margin:0 18px;padding:10px 0}.appearance-help>summary{font-size:11px;color:#b8c8d5}.appearance-help .controls{padding:12px 0 0}.appearance-help .footnote{margin:8px 0 4px}
+.storage-settings{margin-top:16px;padding:12px 18px}.storage-settings>summary{font-size:11px;color:#b8c8d5}.storage-settings>p{font-size:11px;color:var(--muted);margin:10px 0}.preview-area{min-height:210px}
+@media(max-width:850px){.shell>.preset-bar{padding-left:18px;padding-right:18px}}
+@media(max-width:640px){.shell>.preset-bar{padding-left:12px;padding-right:12px}.preset-help{width:100%;order:3}.status-grid.game-only{grid-template-columns:1fr auto}.status-grid.game-only .display-status{grid-column:1/-1}}
