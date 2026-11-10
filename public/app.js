@@ -3,7 +3,7 @@ import {appendCharacter} from './icons.js';
 const $=selector=>document.querySelector(selector);
 let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,creatingPreset=false,editRevision=0,lastKey='',authUiSaved;
 const views=['preview','mapping','connections'];
-const settingKeys=['size','gap','characterScale','badgeSize','nameSize','colorBackground','bounceSpeaking','showCharacter','horizontalNamePosition','verticalNamePosition','orientation','showStatus','showNames','dimIdle'];
+const settingKeys=['displaySource','size','gap','characterScale','badgeSize','nameSize','colorBackground','bounceSpeaking','showCharacter','horizontalNamePosition','verticalNamePosition','orientation','showStatus','showNames','dimIdle'];
 for(const node of document.querySelectorAll('[data-character]'))appendCharacter(node,{color:node.dataset.character,colorKnown:true,lifeState:'alive'});
 function openView(id,{focus=false}={}){
   if(!views.includes(id))id='preview';
@@ -28,14 +28,14 @@ window.addEventListener('hashchange',()=>openView(location.hash.slice(1).replace
 openView(location.hash.slice(1).replace(/^view-/,''));
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,4500);}
 async function post(url,data){const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify(data)});const result=await response.json();if(!response.ok)throw Error(result.error);return result;}
-function settings(){return {size:Number($('#size').value),gap:Number($('#gap').value),characterScale:Number($('#characterScale').value),badgeSize:Number($('#badgeSize').value),nameSize:Number($('#nameSize').value),colorBackground:$('#colorBackground').checked,bounceSpeaking:$('#bounceSpeaking').checked,showCharacter:$('#showCharacter').checked,horizontalNamePosition:$('#horizontalNamePosition').value,verticalNamePosition:$('#verticalNamePosition').value,orientation:$('#orientation').value,showStatus:$('#showStatus').checked,showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked};}
+function settings(){return {displaySource:$('#displaySource').value,size:Number($('#size').value),gap:Number($('#gap').value),characterScale:Number($('#characterScale').value),badgeSize:Number($('#badgeSize').value),nameSize:Number($('#nameSize').value),colorBackground:$('#colorBackground').checked,bounceSpeaking:$('#bounceSpeaking').checked,showCharacter:$('#showCharacter').checked,horizontalNamePosition:$('#horizontalNamePosition').value,verticalNamePosition:$('#verticalNamePosition').value,orientation:$('#orientation').value,showStatus:$('#showStatus').checked,showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked};}
 function updateOutputs(){$('#size-value').textContent=$('#size').value+' px';$('#gap-value').textContent=$('#gap').value+' px';$('#characterScale-value').textContent=$('#characterScale').value+' %';$('#badgeSize-value').textContent=$('#badgeSize').value+' %';$('#nameSize-value').textContent=$('#nameSize').value+' px';}
 function syncSettings(){for(const [key,value]of Object.entries(state.preset.settings)){const element=$('#'+key);if(element.type==='checkbox')element.checked=value;else element.value=value;}updateOutputs();}
 function fitPreview(){const viewport=$('#preview-viewport'),crew=$('#preview-crew');if(viewport.classList.contains('actual'))return;if(!viewport.clientWidth||!crew.offsetWidth)return;const scale=Math.min(1,(viewport.clientWidth-40)/crew.offsetWidth,(viewport.clientHeight-34)/Math.max(1,crew.offsetHeight));crew.style.setProperty('--preview-scale',String(scale));$('#preview-scale-label').hidden=!crew.children.length||scale>=.99;}
 new ResizeObserver(fitPreview).observe($('#preview-viewport'));
 function renderPreview(){
   if(!state)return;
-  const rows=state.mode==='demo'?state.rows:draft.map(link=>({...link,player:(state.game.displayPlayers??state.game.players).find(p=>p.key===link.gameKey)||null,member:state.discord.members.find(m=>m.id===link.discordId)||null}));
+  const rows=settings().displaySource==='game'?(state.game.displayPlayers??state.game.players).map(player=>({gameKey:player.key,visible:true,player,member:null})):draft.map(link=>({...link,player:(state.game.displayPlayers??state.game.players).find(p=>p.key===link.gameKey)||null,member:state.discord.members.find(m=>m.id===link.discordId)||null}));
   const count=renderCrew($('#preview-crew'),{...state,rows,preset:{...state.preset,settings:settings()}});
   $('#preview-viewport').classList.toggle('portrait',settings().orientation==='vertical');
   $('#preview-empty').hidden=count>0;
@@ -45,6 +45,9 @@ function renderPreview(){
 function updateSaveState(){
   const pending=dirty||settingsDirty,demo=state?.mode==='demo';
   for(const key of settingKeys)$('#'+key).disabled=creatingPreset;
+  const gameOnly=$('#displaySource').value==='game';
+  for(const key of ['bounceSpeaking','dimIdle','showCharacter']){$('#'+key).disabled=creatingPreset||gameOnly;$('#'+key).closest('label').hidden=gameOnly;}
+  $('#game-only-note').hidden=!gameOnly;$('#mapping-table').hidden=gameOnly;$('#mapping-hint').hidden=gameOnly;
   if(creatingPreset)for(const node of document.querySelectorAll('#mapping-rows input,#mapping-rows select,#mapping-rows button'))node.disabled=true;
   $('#create-preset').disabled=demo||saving;$('#preset-name').disabled=demo||saving;$('#presets').disabled=saving;$('#demo').disabled=creatingPreset;$('#clear-data').disabled=creatingPreset;
   $('#save').disabled=!pending||saving;$('#discard').hidden=!pending;$('#discard').disabled=saving;
@@ -87,18 +90,18 @@ function table(){
 function receive(next){
   const changed=state?.preset.id!==next.preset.id,modeChanged=state?.mode!==next.mode;state=next;
   if(changed||modeChanged){dirty=false;settingsDirty=false;lastKey='';}
-  if(!dirty)draft=structuredClone(next.mode==='demo'?next.rows.map(({gameKey,discordId,label,visible})=>({gameKey,discordId,label,visible})):next.preset.links);
+  if(!dirty)draft=structuredClone(next.mode==='demo'?next.game.players.map((player,i)=>({gameKey:player.key,discordId:'demo-user-'+i,label:'',visible:true})):next.preset.links);
   if(!settingsDirty)syncSettings();
   const demo=next.mode==='demo',auth=next.discord.auth;
   $('#game-status').textContent=demo?'デモ表示中':next.reader?.status==='unsupported'?'未対応バージョン':next.reader?.status==='error'?'読取を確認してください':next.game.online?next.game.players.length?'接続中':'ロビーを待っています':'起動・参加を待っています';
   $('#game-dot').classList.toggle('online',next.game.online);$('#game-count').textContent=next.game.players.length+'人';
   const gameMode=/SNR|SuperNewRoles/.test(next.game.modVersion)?'SNR':next.game.modVersion.includes('Nebula')?'Nebula':'Among Us';
   $('#game-version').textContent=demo?'表示確認用の架空メンバー':next.game.online&&next.game.players.length&&!/待ち|同名|確認/.test(next.reader?.message||'')?gameMode+' · 色を自動取得しています':next.reader?.message||'Among Usの起動を待っています';
-  const discordStatus=next.discord.status;
-  $('#discord-status').textContent=demo?'デモ表示中':auth.busy?'接続しています':auth.needsAuthorization?'許可が必要です':discordStatus.startsWith('切断しました')?'切断しています':discordStatus.length>25?'接続を確認してください':discordStatus;
-  $('#discord-dot').classList.toggle('online',demo||discordStatus==='接続中');$('#voice-count').textContent=next.discord.members.length+'人';
-  $('#discord-channel').textContent=next.discord.channel||(auth.busy?discordStatus:auth.needsAuthorization?'接続画面から許可をやり直してください':discordStatus.length>25?discordStatus:'サーバーの通話に参加してください');
-  $('#auth-summary').textContent=auth.failure?discordStatus:auth.needsAuthorization?discordStatus+' Discordで許可をやり直してください。':auth.busy?'Discordへの接続を進めています。許可画面が開いた場合は内容を確認してください。':auth.saved?(auth.autoConnect?'認証を保存済みです。次回の起動時も自動接続します。':'認証を保存済みです。「保存した認証で接続」から再開できます。'):auth.storageAvailable?'初回だけブラウザーでDiscordの許可を行います。保存すると、次回から自動接続します。':'認証の保存はWindowsデスクトップ版で利用できます。';
+  const discordStatus=next.discord.status,discordOptional=next.preset.settings.displaySource==='game';
+  $('#discord-status').textContent=discordOptional?'連携不要':demo?'デモ表示中':auth.busy?'接続しています':auth.needsAuthorization?'許可が必要です':discordStatus.startsWith('切断しました')?'切断しています':discordStatus.length>25?'接続を確認してください':discordStatus;
+  $('#discord-dot').classList.toggle('online',!discordOptional&&(demo||discordStatus==='接続中'));$('#voice-count').textContent=discordOptional?'—':next.discord.members.length+'人';
+  $('#discord-channel').textContent=discordOptional?'Among Usのみで表示中':next.discord.channel||(auth.busy?discordStatus:auth.needsAuthorization?'接続画面から許可をやり直してください':discordStatus.length>25?discordStatus:'サーバーの通話に参加してください');
+  $('#auth-summary').textContent=discordOptional?'現在の表示モードではDiscordの連携は不要です。Discord画像や発言検出を使う場合は、表示モードをDiscord連携に戻してください。':auth.failure?discordStatus:auth.needsAuthorization?discordStatus+' Discordで許可をやり直してください。':auth.busy?'Discordへの接続を進めています。許可画面が開いた場合は内容を確認してください。':auth.saved?(auth.autoConnect?'認証を保存済みです。次回の起動時も自動接続します。':'認証を保存済みです。「保存した認証で接続」から再開できます。'):auth.storageAvailable?'初回だけブラウザーでDiscordの許可を行います。保存すると、次回から自動接続します。':'認証の保存はWindowsデスクトップ版で利用できます。';
   $('#connect-discord').hidden=auth.saved&&!auth.needsAuthorization;$('#connect-discord').textContent=auth.needsAuthorization?'Discordの許可をやり直す':'Discordと連携・許可';
   $('#reconnect-discord').hidden=!auth.saved||auth.needsAuthorization;$('#reconnect-discord').textContent=auth.autoConnect?'再接続':'保存した認証で接続';
   $('#forget-discord').hidden=!auth.saved;$('#forget-discord').disabled=auth.busy;$('#disconnect-discord').hidden=!(auth.busy||auth.autoConnect||next.discord.channel||discordStatus==='通話への参加を待っています');
@@ -109,11 +112,11 @@ function receive(next){
   for(const key of settingKeys)$('#'+key).disabled=false;
   $('.life-help').textContent=!demo&&next.game.online&&!next.game.lifeTracking?'会議情報を確認できないため、死亡マークの自動更新を保留しています。':'死亡は会議開始時、追放は会議終了後の確定時に更新します。NebulaのMADMATE巻き添えと、SNRの道連れ・後追いは次の会議開始時に反映します。途中起動時は次の会議から同期します。';
   $('#overlay-url').value=next.overlayUrl;
-  const count=next.rows.filter(row=>row.visible&&row.player&&row.member).length;$('#member-count').textContent=count;
-  $('#mapping-status').textContent=next.unmapped?next.unmapped+'人が未設定です':count?'保存したメンバーを表示中':'接続後にメンバーを対応づけます';
+  const count=next.rows.filter(row=>row.visible&&row.player&&(next.preset.settings.displaySource==='game'||row.member)).length;$('#member-count').textContent=count;
+  $('#mapping-status').textContent=next.preset.settings.displaySource==='game'?'ゲーム内の名前で自動表示':next.unmapped?next.unmapped+'人が未設定です':count?'保存したメンバーを表示中':'接続後にメンバーを対応づけます';
   const presetSignature=options=>options.map(option=>[option.value,option.textContent]);
   if(JSON.stringify(presetSignature([...$('#presets').options]))!==JSON.stringify(next.presets.map(p=>[p.id,p.name])))$('#presets').replaceChildren(...next.presets.map(p=>{const option=document.createElement('option');option.value=p.id;option.textContent=p.name;return option;}));$('#presets').value=next.preset.id;
-  const missing=next.rows.filter(row=>!row.player||!row.member);$('#unresolved').hidden=!missing.length||demo;$('#unresolved').textContent='保存した'+missing.length+'人がゲームまたは通話に見つかりません。名前の変更や退出を確認してください。';
+  const missing=next.rows.filter(row=>!row.player||!row.member);$('#unresolved').hidden=!missing.length||demo||next.preset.settings.displaySource==='game';$('#unresolved').textContent='保存した'+missing.length+'人がゲームまたは通話に見つかりません。名前の変更や退出を確認してください。';
   const key=JSON.stringify([next.mode,next.game.players,next.discord.members.map(m=>({id:m.id,name:m.name})),next.preset.id]);
   if(key!==lastKey&&!document.querySelector('#mapping-rows :focus')){table();lastKey=key;}
   $('#create-preset').disabled=demo;$('#preset-name').disabled=demo;

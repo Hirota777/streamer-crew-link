@@ -49,3 +49,12 @@ body.overlay.overlay-preview{overflow:auto!important}
 .crew-row.hide-character:not(.vertical)>.crew-item{width:var(--crew-size,80px)}
 .crew-row.hide-character.color-background:not(.vertical)>.crew-item{width:calc(var(--crew-size,80px) + 16px)}
 @media(prefers-reduced-motion:reduce){.bounce-speaking>.crew-item.speaking>.character,.bounce-speaking>.crew-item.speaking>.avatar-wrap{animation:none}}
+
+/* Game-only mode uses one crew image as the main icon, with no Discord avatar. */
+.source-option{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:12px 18px}.source-option select{width:auto;min-width:220px}.source-option small{color:#9dabb8}
+.crew-row.game-only .avatar-wrap,.crew-row.game-only .character{width:calc(var(--crew-size,80px)*var(--character-scale,1));height:calc(var(--crew-size,80px)*1.125*var(--character-scale,1))}
+.crew-row.game-only .character{margin:0}
+.crew-row.game-only:not(.vertical)>.crew-item{width:calc(var(--crew-size,80px)*var(--character-scale,1))}
+.crew-row.game-only.color-background:not(.vertical)>.crew-item{width:calc(var(--crew-size,80px)*var(--character-scale,1) + 16px)}
+
+.controls label[hidden]{display:none}
