@@ -68,4 +68,13 @@ function openOverlay(){
 }
 
 const legalPaths=new Set(['/licenses','/legal/application','/legal/notices','/legal/electron','/legal/chromium','/legal/reader','/legal/dotnet','/legal/dotnet-third-party','/legal/capture','/legal/assets','/legal/ffmpeg-source']);
-function openLegal(url){const legal=new BrowserWindow({width:800,height:720,title:'ライセンス — Streamer crew link',backgroundColor:'#10151b',webPreferences:{partition:'crew-link-runtime',nodeIntegration:false,contextIsolation:true,sandbox:true}});secure(legal);legal.loadURL(url);}
+function openLegal(url){
+ const original=new URL(url).pathname.startsWith('/legal/');
+ const legal=new BrowserWindow({width:800,height:720,title:'ライセンス — Streamer crew link',backgroundColor:original?'#ffffff':'#10151b',webPreferences:{partition:'crew-link-runtime',nodeIntegration:false,contextIsolation:true,sandbox:true}});
+ secure(legal);
+ // Plain-text documents otherwise inherit the window's dark background with black text.
+ legal.webContents.on('did-finish-load',()=>{
+  if(new URL(legal.webContents.getURL()).pathname.startsWith('/legal/'))legal.webContents.insertCSS('html,body{color-scheme:light!important;background:#fff!important;color:#171717!important}body{margin:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.65}a{color:#0645ad!important}a:visited{color:#663399!important}').catch(()=>{});
+ });
+ legal.loadURL(url);
+}
