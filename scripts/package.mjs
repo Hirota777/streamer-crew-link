@@ -1,4 +1,5 @@
 import {copyLicenseAssets,applicationNotices} from './license-assets.mjs';
+import {runtimeFiles,userDocuments,trimLocales} from './distribution-layout.mjs';
 import {packager} from '@electron/packager';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -13,7 +14,7 @@ const dotnet=spawnSync('dotnet',['publish',path.join(root,'reader','CrewLink.Rea
 if(dotnet.status!==0)throw Error('Reader build failed. Install the .NET 10 SDK.');
 await fs.rm(staging,{recursive:true,force:true});await fs.mkdir(staging,{recursive:true});
 for(const folder of ['lib','public'])await fs.cp(path.join(root,folder),path.join(staging,folder),{recursive:true});
-for(const file of ['desktop.cjs','preload.cjs','server.mjs','package.json','README.md','PRIVACY.md','TERMS.md','ASSET-NOTICES.md','OPERATIONS.md','DISTRIBUTION.md','SECURITY-REVIEW.md',...applicationNotices])await fs.copyFile(path.join(root,file),path.join(staging,file));
+for(const file of runtimeFiles)await fs.copyFile(path.join(root,file),path.join(staging,file));
 const reader=path.join(root,'build','extra','reader');await fs.mkdir(reader,{recursive:true});
 await fs.copyFile(path.join(root,'reader','release','CrewLink.Reader.exe'),path.join(reader,'CrewLink.Reader.exe'));
 for(const file of ['profiles.json','LICENSE-AmongUsCapture.txt'])await fs.copyFile(path.join(root,'reader',file),path.join(reader,file));
@@ -21,4 +22,4 @@ await fs.copyFile(path.join(root,'third_party','dotnet','LICENSE.txt'),path.join
 await fs.copyFile(path.join(root,'third_party','dotnet','ThirdPartyNotices.txt'),path.join(reader,'THIRD-PARTY-NOTICES-dotnet.txt'));
 await fs.copyFile(path.join(root,'reader','THIRD-PARTY-NOTICES-reader.md'),path.join(reader,'THIRD-PARTY-NOTICES-reader.md'));
 const results=await packager({dir:staging,out:path.join(root,'dist'),name:'Streamer crew link',platform:'win32',arch:'x64',electronVersion:'45.2.3',asar:true,prune:false,overwrite:true,icon:path.join(root,'assets','app.ico'),extraResource:[reader],appCopyright:'Copyright (c) 2026 Hirota777',win32metadata:{ProductName:'Streamer crew link',CompanyName:'Streamer crew link',FileDescription:'Among Us streaming companion'}});
-for(const output of results){if(signing)await (await import('./windows-signing.mjs')).signPackage(output,signing);for(const file of ['README.md','PRIVACY.md','TERMS.md','ASSET-NOTICES.md','OPERATIONS.md','DISTRIBUTION.md','SECURITY-REVIEW.md',...applicationNotices])await fs.copyFile(path.join(root,file),path.join(output,file));await copyLicenseAssets(root,output);console.log(output);}
+for(const output of results){await trimLocales(output);if(signing)await (await import('./windows-signing.mjs')).signPackage(output,signing);for(const file of [...userDocuments,...applicationNotices])await fs.copyFile(path.join(root,file),path.join(output,file));await copyLicenseAssets(root,output);console.log(output);}

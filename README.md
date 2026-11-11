@@ -8,13 +8,13 @@ Among Usの色とDiscordの参加者・発言状態を対応づけて、OBSに�
 
 | 対象 | バージョン | 状況 |
 | --- | --- | --- |
-| 配布版・ソース | [v0.9.15-beta](https://github.com/Hirota777/streamer-crew-link/releases/tag/v0.9.15-beta) | Windows x64向けMSI・ZIP |
+| 配布版・ソース | [v0.9.16-beta](https://github.com/Hirota777/streamer-crew-link/releases/tag/v0.9.16-beta) | Windows x64向けMSI・ZIP |
 
-通常は `Streamer-crew-link-0.9.15-Windows-x64.msi` を実行してください。同じWindowsユーザーの `%LOCALAPPDATA%\Programs\Streamer crew link` にインストールし、デスクトップとスタートメニューへショートカットを作ります。更新前は旧アプリを終了してください。従来のZIP版から移行しても、同じユーザーの保存設定・認証を使用します。旧ZIP版とMSI版を同時起動しないでください。
+通常は `Streamer-crew-link-0.9.16-Windows-x64.msi` を実行してください。同じWindowsユーザーの `%LOCALAPPDATA%\Programs\Streamer crew link` にインストールし、デスクトップとスタートメニューへショートカットを作ります。更新前は旧アプリを終了してください。従来のZIP版から移行しても、同じユーザーの保存設定・認証を使用します。旧ZIP版とMSI版を同時起動しないでください。
 
 アンインストールしても設定・認証は保持します。完全に消す場合は、先にアプリの「保存データをすべて削除」を使用してください。MSIは未署名です。証明書による発行元の確認はできません。
 
-ZIP版は `Streamer-crew-link-0.9.15-Windows-x64-beta.zip` を展開して利用します。ソースコードのZIPは実行用ではありません。GitHubの閲覧権限とDiscordのテスター登録は別々に必要です。
+ZIP版は `Streamer-crew-link-0.9.16-Windows-x64-beta.zip` を展開して利用します。ソースコードのZIPは実行用ではありません。GitHubの閲覧権限とDiscordのテスター登録は別々に必要です。
 
 0.9.6以降のロビー移行対策と0.9.7のMADMATE巻き添え遅延反映を含みます。一般公開向けのDiscord RPC承認が完了したことを示す配布物ではありません。
 

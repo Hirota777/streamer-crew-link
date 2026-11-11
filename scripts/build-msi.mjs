@@ -30,7 +30,7 @@ async function directory(folder,rel=''){
  for(const entry of entries){const key=rel?rel+'/'+entry.name:entry.name,absolute=path.join(folder,entry.name);
   if(entry.isDirectory()){body+=`<Directory Id="${id('D',key)}" Name="${xml(entry.name)}">${await directory(absolute,key)}</Directory>`;continue;}
   if(!entry.isFile())throw Error('配布フォルダーに通常ファイル以外が含まれています。');
-  if(/(?:^|\/)(?:data|test|node_modules)(?:\/|$)|discord-auth|settings\.(?:json|bin)|\.log$/i.test(key))throw Error('個人データまたは開発用ファイルを検出しました。');
+  if(/(?:^|\/)(?:data|test|test-ui|node_modules)(?:\/|$)|discord-auth|settings\.(?:json|bin)|(?:^|\/)\.env(?:\.|$)|\.(?:log|pdb|wixpdb|map|pfx|p12|key|tmp)$/i.test(key))throw Error('個人データまたは開発用ファイルを検出しました。');
   const component=id('C',key),file=id('F',key);components.push(component);files.push(key);
   body+=`<Component Id="${component}" Guid="${guid(key)}" Win64="yes"><File Id="${file}" Source="${xml(absolute)}" KeyPath="no"/><RegistryValue Root="HKCU" Key="Software\\Hirota777\\StreamerCrewLink\\InstallerFiles" Name="${component}" Type="string" Value="${pkg.version}" KeyPath="yes"/>${remove?`<RemoveFolder Id="${id('R',rel||'root')}" On="uninstall"/>`:''}</Component>`;remove=false;
  }
@@ -53,7 +53,7 @@ const wxs=`<?xml version="1.0" encoding="utf-8"?>
 </Product></Wix>`;
 const sourceFile=path.join(build,'installer.wxs'),object=path.join(build,'installer.wixobj'),msi=path.join(output,`Streamer-crew-link-${pkg.version}-Windows-x64.msi`);await fs.writeFile(sourceFile,wxs);
 // ICE91 warns that per-user files cannot install for all users. This package intentionally supports per-user only.
-for(const [tool,args]of [['candle.exe',['-nologo','-arch','x64','-out',object,sourceFile]],['light.exe',['-nologo','-ext',path.join(wix,'WixUIExtension.dll'),'-sice:ICE91','-cultures:ja-jp','-out',msi,object]]]){
+for(const [tool,args]of [['candle.exe',['-nologo','-arch','x64','-out',object,sourceFile]],['light.exe',['-nologo','-ext',path.join(wix,'WixUIExtension.dll'),'-sice:ICE91','-cultures:ja-jp','-pdbout',path.join(build,'installer.wixpdb'),'-out',msi,object]]]){
  const result=spawnSync(path.join(wix,tool),args,{stdio:'inherit',windowsHide:true});if(result.status!==0)throw Error(tool+' failed: '+result.status);
 }
 const bytes=await fs.readFile(msi);await fs.writeFile(path.join(output,`Streamer-crew-link-${pkg.version}-MSI-SHA256.txt`),hash(bytes)+'  '+path.basename(msi)+'\n');
