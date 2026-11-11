@@ -28,7 +28,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
    const {CredentialVault}=await import(pathToFileURL(path.join(__dirname,'lib','vault.mjs')).href);
    const settingsCipher={available:()=>safeStorage.isAsyncEncryptionAvailable(),encrypt:plain=>safeStorage.encryptStringAsync(plain),decrypt:async bytes=>(await safeStorage.decryptStringAsync(bytes)).result};
    const credentialVault=new CredentialVault(data,settingsCipher);
-   local=await createApp({directory:data,credentialVault,settingsCipher,clearLegacyData:async()=>removeLegacyCopies(true),openExternal:url=>{const u=new URL(url);if(u.origin!=='https://discord.com'||u.pathname!=='/oauth2/authorize')throw Error('認証URLが不正です。');return shell.openExternal(url);}});
+   local=await createApp({directory:data,credentialVault,settingsCipher,licenseDirectory:base,readerLicenseDirectory:app.isPackaged?path.join(process.resourcesPath,'reader'):path.join(__dirname,'reader'),clearLegacyData:async()=>removeLegacyCopies(true),openExternal:url=>{const u=new URL(url);if(u.origin!=='https://discord.com'||u.pathname!=='/oauth2/authorize')throw Error('認証URLが不正です。');return shell.openExternal(url);}});
    // A verified encrypted settings file now exists. Remove only known legacy copies.
    if(!process.env.STREAMER_CREW_LINK_PROFILE)removeLegacyCopies(local.snapshot().discord.auth.saved);
    // The default session is only used for encryption keys, never to display API data.
@@ -38,7 +38,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
    await new Promise((resolve,reject)=>{local.server.once('error',reject);local.server.listen(37891,'127.0.0.1',resolve);});
    const {startReader}=await import(pathToFileURL(path.join(__dirname,'lib','reader.mjs')).href);
    stopReader=startReader(app.isPackaged?path.join(process.resourcesPath,'reader'):path.join(__dirname,'reader','release'),local.ingestGame,local.setReaderStatus);
-   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'アプリ',submenu:[{label:'OBS表示を開く',click:()=>{openOverlay();}},{type:'separator'},{label:'終了',role:'quit'}]},{label:'表示',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}]));
+   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'アプリ',submenu:[{label:'OBS表示を開く',click:()=>{openOverlay();}},{label:'ライセンス',click:()=>openLegal(address+'/licenses')},{type:'separator'},{label:'終了',role:'quit'}]},{label:'表示',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}]));
    ipcMain.handle('crew-link:copy-overlay-url',async event=>{
     if(!win||event.sender!==win.webContents||event.senderFrame!==win.webContents.mainFrame||new URL(event.senderFrame.url).origin!==address||new URL(event.senderFrame.url).pathname!=='/')throw Error('コピーを実行できません。');
     await clipboard.writeText(address+'/overlay');
@@ -54,7 +54,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
 }
 const publicLinks=new Set(['https://github.com/Hirota777/streamer-crew-link-docs/blob/Test/PRIVACY.md','https://github.com/Hirota777/streamer-crew-link-docs/blob/Test/TERMS.md','https://github.com/Hirota777/streamer-crew-link-docs/issues']);
 function secure(window){
- window.webContents.setWindowOpenHandler(({url})=>{if(url===address+'/overlay'){openOverlay();}else if(publicLinks.has(url)){shell.openExternal(url).catch(()=>{});}return {action:'deny'};});
+ window.webContents.setWindowOpenHandler(({url})=>{if(url===address+'/overlay'){openOverlay();}else if(legalPaths.has(new URL(url).pathname)&&new URL(url).origin===address){openLegal(url);}else if(publicLinks.has(url)){shell.openExternal(url).catch(()=>{});}return {action:'deny'};});
  window.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith(address+'/'))event.preventDefault();});
  window.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
 }
@@ -66,3 +66,6 @@ function openOverlay(){
  overlayWindows.add(overlay);overlay.once('closed',()=>overlayWindows.delete(overlay));
  secure(overlay);overlay.loadURL(address+'/overlay?preview=1');
 }
+
+const legalPaths=new Set(['/licenses','/legal/application','/legal/notices','/legal/electron','/legal/chromium','/legal/reader','/legal/dotnet','/legal/dotnet-third-party','/legal/capture','/legal/assets','/legal/ffmpeg-source']);
+function openLegal(url){const legal=new BrowserWindow({width:800,height:720,title:'ライセンス — Streamer crew link',backgroundColor:'#10151b',webPreferences:{partition:'crew-link-runtime',nodeIntegration:false,contextIsolation:true,sandbox:true}});secure(legal);legal.loadURL(url);}

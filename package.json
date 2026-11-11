@@ -1,6 +1,6 @@
 {
   "name": "streamer-crew-link",
-  "version": "0.9.12",
+  "version": "0.9.13",
   "private": true,
   "type": "module",
   "main": "desktop.cjs",
@@ -23,5 +23,7 @@
   "overrides": {
     "glob": "14.0.2",
     "minimatch": "11.0.1"
-  }
+  },
+  "author": "Hirota777",
+  "license": "SEE LICENSE IN LICENSE-APPLICATION.txt"
 }

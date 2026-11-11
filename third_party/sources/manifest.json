@@ -1,0 +1,7 @@
+{
+  "electronVersion": "45.2.3",
+  "ffmpegSha256": "fc2e3525f8fbb9c25f67b804b6708119a4918b48f74dd3c0574194b8b560c26b",
+  "archive": "FFmpeg-Electron-45.2.3-sources.zip",
+  "sourceSha256": "f6beafb6a5bc44adc28204591e55f2f8de606856642ceb9ce44e5d7555b23b3f",
+  "ffmpegRevision": "9db86ce5b5b454dfc96c435f9f0723012980c37f"
+}

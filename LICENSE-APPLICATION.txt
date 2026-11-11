@@ -1,0 +1,13 @@
+Streamer crew link
+Copyright (c) 2026 Hirota777. All rights reserved.
+
+This notice applies only to the original portions of Streamer crew link.
+Use of those portions is subject to TERMS.md. This is not an MIT license
+for all application code and does not assert ownership of third-party code,
+images, trademarks, or other materials.
+
+Third-party components remain under their respective licenses, which take
+precedence for those components. Nothing in the application's terms limits
+rights granted by those licenses, including modification, replacement,
+redistribution, and reverse engineering for debugging permitted modifications
+of LGPL-covered components. See THIRD-PARTY-NOTICES.md and /licenses.
