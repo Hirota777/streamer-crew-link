@@ -1,6 +1,6 @@
 {
   "name": "streamer-crew-link",
-  "version": "0.9.14",
+  "version": "0.9.15",
   "private": true,
   "type": "module",
   "main": "desktop.cjs",
@@ -10,7 +10,9 @@
     "test": "node --test test/*.test.mjs",
     "build": "node scripts/package.mjs",
     "build:signed": "node scripts/package-signed.mjs",
-    "sign:package": "node scripts/sign-package.mjs"
+    "sign:package": "node scripts/sign-package.mjs",
+    "test:ui": "node --test test-ui/*.test.mjs",
+    "build:msi": "node scripts/build-msi.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -18,7 +20,8 @@
   "description": "Among Us and Discord streaming overlay companion for Windows",
   "devDependencies": {
     "@electron/packager": "20.3.0",
-    "electron": "45.2.3"
+    "electron": "45.2.3",
+    "playwright": "1.64.1"
   },
   "overrides": {
     "glob": "14.0.2",

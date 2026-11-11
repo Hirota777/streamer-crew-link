@@ -4,14 +4,17 @@ Among Usの色とDiscordの参加者・発言状態を対応づけて、OBSに�
 
 ## バージョンと配布状況
 
-2026年11月9日時点の状況です。
+2026年11月11日更新。
 
 | 対象 | バージョン | 状況 |
 | --- | --- | --- |
-| 最新配布版 | [v0.9.13-beta](https://github.com/Hirota777/streamer-crew-link/releases/tag/v0.9.13-beta) | Windows x64向けZIPを公開済み |
-| mainのソース | 0.9.13 | ロビー移行時の表示保持、MADMATE巻き添えの次会議反映を実装 |
+| 配布版・ソース | [v0.9.15-beta](https://github.com/Hirota777/streamer-crew-link/releases/tag/v0.9.15-beta) | Windows x64向けMSI・ZIP |
 
-利用する場合は、上記リリースのAssetsから `Streamer-crew-link-0.9.13-Windows-x64-beta.zip` を取得してください。ソースコードのZIPは実行用の配布物ではありません。非公開リポジトリの閲覧権限とDiscordのテスター登録は別々に必要です。
+通常は `Streamer-crew-link-0.9.15-Windows-x64.msi` を実行してください。同じWindowsユーザーの `%LOCALAPPDATA%\Programs\Streamer crew link` にインストールし、デスクトップとスタートメニューへショートカットを作ります。更新前は旧アプリを終了してください。従来のZIP版から移行しても、同じユーザーの保存設定・認証を使用します。旧ZIP版とMSI版を同時起動しないでください。
+
+アンインストールしても設定・認証は保持します。完全に消す場合は、先にアプリの「保存データをすべて削除」を使用してください。MSIは未署名です。証明書による発行元の確認はできません。
+
+ZIP版は `Streamer-crew-link-0.9.15-Windows-x64-beta.zip` を展開して利用します。ソースコードのZIPは実行用ではありません。GitHubの閲覧権限とDiscordのテスター登録は別々に必要です。
 
 0.9.6以降のロビー移行対策と0.9.7のMADMATE巻き添え遅延反映を含みます。一般公開向けのDiscord RPC承認が完了したことを示す配布物ではありません。
 
@@ -23,7 +26,7 @@ Among Usの色とDiscordの参加者・発言状態を対応づけて、OBSに�
 
 ## Discord連携で使い始める
 
-1. ZIPをフォルダーに展開し、`Streamer crew link.exe` を起動します。実行ファイルだけを移動せず、同梱ファイルを一緒に置いてください。
+1. MSIでインストールしたショートカットから起動します。ZIP版の場合は全体を展開し、`Streamer crew link.exe` を起動します。
 2. Discordデスクトップ版を起動し、サーバーの通話へ参加します。
 3. アプリの「接続」で「Discordと連携・許可」を押します。ブラウザーで自分のDiscordアカウントと表示されたアプリ名を確認して許可してください。
 4. Among Usを起動してロビーに参加します。Nebula・SNRを使う場合も、ゲームフォルダーにこのツールのファイルを追加する必要はありません。

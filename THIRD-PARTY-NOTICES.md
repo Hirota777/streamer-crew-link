@@ -10,6 +10,7 @@
 | .NET | resources/reader/LICENSE-dotnet.txt、THIRD-PARTY-NOTICES-dotnet.txt |
 | ClrMD等のReader依存 | resources/reader/THIRD-PARTY-NOTICES-reader.md |
 | AmongUsCapture由来の対応情報 | MIT。resources/reader/LICENSE-AmongUsCapture.txt |
+| MSIのWiX標準画面 | Microsoft Reciprocal License (MS-RL)。LICENSE-WiX.txtとthird-party-sources/WiX-3.14.1-sources.zipをMSIへ同梱。自作アプリ全体にMS-RLを適用するものではありません。 |
 | クルー画像・アプリアイコン | ASSET-NOTICES.md。ライブラリのMITとは別の権利です |
 
 ## FFmpegの対応ソース

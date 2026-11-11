@@ -19,6 +19,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
   const client=discordClient??new Discord({authorize:()=>oauth.begin(),cancelAuthorization:()=>oauth.cancel()});
   const discord=new DiscordSession({vault:credentialVault,client}), streams=new Set();await discord.initialize();
   const presentation=new GamePresentation({now});
+  const instanceId=randomBytes(16).toString('hex');let stateVersion=0;
   let game=null,lastGame=null,mode='live',demoTimer=null,connecting=false,reader={status:'waiting',message:'Among Usの起動を待っています'};
   const demoGame={version:'表示確認用',modVersion:'デモ',scene:'Lobby',lifeTracking:true,players:Array.from({length:11},(_,i)=>({key:'demo-game-'+i,name:['しろ','くろ','もも','そら','あお','むらさき','きいろ','みどり','あか','ライム','ローズ'][i],color:['#d6e0f0','#353846','#f3a6c5','#38e7df','#253fcd','#7739c4','#fff3a1','#147a45','#ca243e','#6ae33d','#d448aa'][i],colorId:[7,6,3,10,1,8,5,2,0,11,13][i],lifeState:i===2?'dead':i===5?'exiled':'alive',stable:false}))};
   let demoMembers=[];
@@ -30,7 +31,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
     const links=isDemo?demoGame.players.map((p,i)=>({gameKey:p.key,discordId:'demo-user-'+i,label:'',visible:true,order:i})):preset.links;
     const gameOnly=preset.settings.displaySource==='game';
     const rows=gameOnly?displayPlayers.map((player,order)=>({gameKey:player.key,label:player.name,visible:true,order,player,member:null})):links.map(l=>{const player=displayPlayers.find(p=>p.key===l.gameKey),member=members.find(m=>m.id===l.discordId);return {...l,player:player??null,member:member??null};});
-    return {mode,reader,game:{online,lifeTracking:g?.lifeTracking===true,scene:g?.scene??'',version:g?.version??'',modVersion:g?.modVersion??'',players:g?.players??[],displayPlayers},discord:{status:isDemo?'デモ表示中':discord.status,channel:isDemo?'表示確認用':discord.channel?.name??'',members,auth:discord.info()},preset, presets:store.data.presets.map(p=>({id:p.id,name:p.name})),rows,overlayUrl:`http://127.0.0.1:${port}/overlay`,unmapped:gameOnly?0:g?.players.filter(p=>!links.some(l=>l.gameKey===p.key)).length??0};
+    return {instanceId,stateVersion:++stateVersion,mode,reader,game:{online,lifeTracking:g?.lifeTracking===true,scene:g?.scene??'',version:g?.version??'',modVersion:g?.modVersion??'',players:g?.players??[],displayPlayers},discord:{status:isDemo?'デモ表示中':discord.status,channel:isDemo?'表示確認用':discord.channel?.name??'',members,auth:discord.info()},preset, presets:store.data.presets.map(p=>({id:p.id,name:p.name})),rows,overlayUrl:`http://127.0.0.1:${port}/overlay`,unmapped:gameOnly?0:g?.players.filter(p=>!links.some(l=>l.gameKey===p.key)).length??0};
   }
   function broadcast(){const payload='data: '+JSON.stringify(snapshot())+'\n\n';for(const s of streams){if(s.writableLength>512*1024){streams.delete(s);s.destroy();}else s.write(payload);}}
   discord.on('change',broadcast);
@@ -56,8 +57,8 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
         if(req.headers.origin&&!['http://127.0.0.1:'+port,'http://localhost:'+port].includes(req.headers.origin)){json(res,{error:'接続元が不正です。'},403);return;}
         const b=await body(req);
         switch(route){
-          case '/api/save':await store.save(mode==='demo'?{settings:b.settings,links:store.current.links}:b);break;
-          case '/api/presets/create':await store.create(b.name);break;
+          case '/api/save':await store.save(b,{settingsOnly:mode==='demo'});break;
+          case '/api/presets/create':await store.create(b.name,b.presetId);break;
           case '/api/presets/select':await store.select(b.id);break;
           case '/api/demo':b.enabled?startDemo():stopDemo();break;
           case '/api/discord/connect':

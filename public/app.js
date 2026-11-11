@@ -2,6 +2,8 @@ import {renderCrew} from './render.js';
 import {appendCharacter} from './icons.js';
 const $=selector=>document.querySelector(selector);
 let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,creatingPreset=false,editRevision=0,lastKey='',authUiSaved,layoutSource;
+const pendingDrafts=new Map();
+const draftKey=s=>s.mode+':'+s.preset.id;
 const views=['preview','mapping','connections'];
 const settingKeys=['displaySource','size','gap','characterScale','badgeSize','nameSize','colorBackground','bounceSpeaking','showCharacter','horizontalNamePosition','verticalNamePosition','orientation','showStatus','showNames','dimIdle'];
 for(const node of document.querySelectorAll('[data-character]'))appendCharacter(node,{color:node.dataset.character,colorKnown:true,lifeState:'alive'});
@@ -30,7 +32,7 @@ function toast(message){$('#toast').textContent=message;$('#toast').hidden=false
 async function post(url,data){const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify(data)});const result=await response.json();if(!response.ok)throw Error(result.error);return result;}
 function settings(){return {displaySource:$('#displaySource').value,size:Number($('#size').value),gap:Number($('#gap').value),characterScale:Number($('#characterScale').value),badgeSize:Number($('#badgeSize').value),nameSize:Number($('#nameSize').value),colorBackground:$('#colorBackground').checked,bounceSpeaking:$('#bounceSpeaking').checked,showCharacter:$('#showCharacter').checked,horizontalNamePosition:$('#horizontalNamePosition').value,verticalNamePosition:$('#verticalNamePosition').value,orientation:$('#orientation').value,showStatus:$('#showStatus').checked,showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked};}
 function updateOutputs(){$('#size-value').textContent=$('#size').value+' px';$('#gap-value').textContent=$('#gap').value+' px';$('#characterScale-value').textContent=$('#characterScale').value+' %';$('#badgeSize-value').textContent=$('#badgeSize').value+' %';$('#nameSize-value').textContent=$('#nameSize').value+' px';}
-function syncSettings(){for(const [key,value]of Object.entries(state.preset.settings)){const element=$('#'+key);if(element.type==='checkbox')element.checked=value;else element.value=value;}updateOutputs();}
+function syncSettings(values=state.preset.settings){for(const [key,value]of Object.entries(values)){const element=$('#'+key);if(element.type==='checkbox')element.checked=value;else element.value=value;}updateOutputs();}
 function fitPreview(){const viewport=$('#preview-viewport'),crew=$('#preview-crew');if(viewport.classList.contains('actual'))return;if(!viewport.clientWidth||!crew.offsetWidth)return;const scale=Math.min(1,(viewport.clientWidth-40)/crew.offsetWidth,(viewport.clientHeight-34)/Math.max(1,crew.offsetHeight));crew.style.setProperty('--preview-scale',String(scale));$('#preview-scale-label').hidden=!crew.children.length||scale>=.99;}
 new ResizeObserver(fitPreview).observe($('#preview-viewport'));
 function renderPreview(){
@@ -64,7 +66,7 @@ function updateSaveState(){
   $('#save').disabled=!pending||saving;$('#discard').hidden=!pending;$('#discard').disabled=saving;
   $('#save-state').classList.toggle('dirty',pending);
   $('#save-label').textContent=saving?'保存しています':pending?'未保存の変更があります':'保存済み';
-  $('#save-description').textContent=demo?(pending?'見た目だけを保存します。実際の対応づけは維持します。':'見た目は保存済みです。デモのメンバーは保存しません。'):pending?'保存するとOBSにも反映されます':'次回も同じ設定を使えます';
+  $('#save-description').textContent=pendingDrafts.size?'別のプリセットに未保存の編集があります。元のプリセットに戻ると復元します。':demo?(pending?'見た目だけを保存します。実際の対応づけは維持します。':'見た目は保存済みです。デモのメンバーは保存しません。'):pending?'保存するとOBSにも反映されます':'次回も同じ設定を使えます';
 }
 function edited(){dirty=true;editRevision++;lastKey='';updateSaveState();renderPreview();}
 function gameRows(){return [...draft.map(link=>({link,player:state.game.players.find(p=>p.key===link.gameKey)})),...state.game.players.filter(p=>!draft.some(link=>link.gameKey===p.key)).map(player=>({player,link:null}))];}
@@ -99,8 +101,13 @@ function table(){
   }));
 }
 function receive(next){
-  const changed=state?.preset.id!==next.preset.id,modeChanged=state?.mode!==next.mode;state=next;
+  if(state?.instanceId===next.instanceId&&Number.isFinite(next.stateVersion)&&next.stateVersion<state.stateVersion)return;
+  const changed=state?.preset.id!==next.preset.id,modeChanged=state?.mode!==next.mode;
+  if(state&&(changed||modeChanged)&&(dirty||settingsDirty))pendingDrafts.set(draftKey(state),{draft:structuredClone(draft),settings:settings(),dirty,settingsDirty,revision:editRevision});
+  state=next;
+  for(const key of pendingDrafts.keys())if(!next.presets.some(p=>key==='live:'+p.id||key==='demo:'+p.id))pendingDrafts.delete(key);
   if(changed||modeChanged){dirty=false;settingsDirty=false;lastKey='';}
+  if((changed||modeChanged)&&pendingDrafts.has(draftKey(next))){const saved=pendingDrafts.get(draftKey(next));pendingDrafts.delete(draftKey(next));draft=saved.draft;dirty=saved.dirty;settingsDirty=saved.settingsDirty;syncSettings(saved.settings);editRevision++;toast('このプリセットの未保存の編集を復元しました。');}
   if(!dirty)draft=structuredClone(next.mode==='demo'?next.game.players.map((player,i)=>({gameKey:player.key,discordId:'demo-user-'+i,label:'',visible:true})):next.preset.links);
   if(!settingsDirty)syncSettings();
   const demo=next.mode==='demo',auth=next.discord.auth;
@@ -128,7 +135,7 @@ function receive(next){
   const presetSignature=options=>options.map(option=>[option.value,option.textContent]);
   if(JSON.stringify(presetSignature([...$('#presets').options]))!==JSON.stringify(next.presets.map(p=>[p.id,p.name])))$('#presets').replaceChildren(...next.presets.map(p=>{const option=document.createElement('option');option.value=p.id;option.textContent=p.name;return option;}));$('#presets').value=next.preset.id;
   const missing=next.rows.filter(row=>!row.player||!row.member);$('#unresolved').hidden=!missing.length||demo||next.preset.settings.displaySource==='game';$('#unresolved').textContent='保存した'+missing.length+'人がゲームまたは通話に見つかりません。名前の変更や退出を確認してください。';
-  const key=JSON.stringify([next.mode,next.game.players,next.discord.members.map(m=>({id:m.id,name:m.name})),next.preset.id]);
+  const key=JSON.stringify([next.mode,next.game.players,next.discord.members.map(m=>({id:m.id,name:m.name})),next.preset.id,draft]);
   if(key!==lastKey&&!document.querySelector('#mapping-rows :focus')){table();lastKey=key;}
   $('#create-preset').disabled=demo;$('#preset-name').disabled=demo;
   renderPreview();updateSaveState();
@@ -138,15 +145,15 @@ async function copyUrl(){try{if(window.crewLink?.copyOverlayUrl)await window.cre
 $('#demo').onclick=toggleDemo;$('#copy-url').onclick=copyUrl;
 $('#preview-actual').onclick=()=>{const actual=$('#preview-viewport').classList.toggle('actual');$('#preview-actual').setAttribute('aria-pressed',String(actual));$('#preview-actual').textContent=actual?'全体を表示':'実寸で確認';$('#preview-scale-label').hidden=actual;fitPreview();};
 
-$('#save').onclick=async()=>{if(saving)return;saving=true;const revision=editRevision;updateSaveState();try{const result=await post('/api/save',state.mode==='demo'?{settings:settings()}:{links:draft,settings:settings()});if(revision===editRevision){dirty=false;settingsDirty=false;}receive(result);toast('設定を保存し、OBSに反映しました。');}catch(error){toast(error.message);}finally{saving=false;updateSaveState();}};
+$('#save').onclick=async()=>{if(saving)return;saving=true;const revision=editRevision,target=draftKey(state),presetId=state.preset.id;updateSaveState();try{const result=await post('/api/save',state.mode==='demo'?{presetId,settings:settings()}:{presetId,links:draft,settings:settings()});if(target===draftKey(state)&&revision===editRevision){dirty=false;settingsDirty=false;pendingDrafts.delete(target);}else if(pendingDrafts.get(target)?.revision===revision)pendingDrafts.delete(target);receive(result);toast('プリセットの設定を保存しました。選択中の設定がOBSに反映されます。');}catch(error){toast(error.message);}finally{saving=false;updateSaveState();}};
 $('#discard').onclick=()=>{dirty=false;settingsDirty=false;lastKey='';receive(state);toast('未保存の変更を元に戻しました。');};
 $('#presets').onchange=async event=>{if(dirty||settingsDirty){event.target.value=state.preset.id;toast('変更を保存するか、元に戻してから切り替えてください。');return;}try{lastKey='';receive(await post('/api/presets/select',{id:event.target.value}));}catch(error){toast(error.message);}};
-$('#create-preset').onclick=async()=>{if(saving||state.mode==='demo')return;const name=$('#preset-name').value.trim();if(!name){toast('プリセット名を入力してください。');return;}saving=true;creatingPreset=true;updateSaveState();try{await post('/api/save',{links:draft,settings:settings()});const result=await post('/api/presets/create',{name});dirty=false;settingsDirty=false;lastKey='';receive(result);$('#preset-name').value='';$('.preset-create').open=false;toast('新しいプリセットを保存しました。');}catch(error){toast(error.message);}finally{creatingPreset=false;saving=false;table();updateSaveState();}};
+$('#create-preset').onclick=async()=>{if(saving||state.mode==='demo')return;const name=$('#preset-name').value.trim();if(!name){toast('プリセット名を入力してください。');return;}const presetId=state.preset.id,target=draftKey(state);saving=true;creatingPreset=true;updateSaveState();try{await post('/api/save',{presetId,links:draft,settings:settings()});const result=await post('/api/presets/create',{name,presetId});pendingDrafts.delete(target);dirty=false;settingsDirty=false;lastKey='';receive(result);$('#preset-name').value='';$('.preset-create').open=false;toast('新しいプリセットを保存しました。');}catch(error){toast(error.message);}finally{creatingPreset=false;saving=false;table();updateSaveState();}};
 for(const key of settingKeys)$('#'+key).oninput=()=>{settingsDirty=true;editRevision++;updateOutputs();renderPreview();updateSaveState();};
 $('#discord-form').onsubmit=async event=>{event.preventDefault();if(dirty||settingsDirty){toast('変更を保存するか、元に戻してから接続してください。');return;}const options=Object.fromEntries(new FormData(event.target));options.remember=$('#remember-discord').checked;$('#connect-discord').disabled=true;try{receive(await post('/api/discord/connect',options));toast('Discordと連携しました。');}catch(error){toast(error.message);}finally{$('#connect-discord').disabled=state.discord.auth.busy;}};
 $('#disconnect-discord').onclick=async()=>{try{receive(await post('/api/discord/disconnect',{}));}catch(error){toast(error.message);}};
 $('#reconnect-discord').onclick=async()=>{if(dirty||settingsDirty){toast('変更を保存するか、元に戻してから接続してください。');return;}try{receive(await post('/api/discord/reconnect',{}));}catch(error){toast(error.message);}};
 $('#forget-discord').onclick=async()=>{try{receive(await post('/api/discord/forget',{}));$('#discord-form').reset();toast('このPCに保存したDiscordの認証を削除しました。');}catch(error){toast(error.message);}};
-$('#clear-data').onclick=async()=>{if(!window.confirm('このPCの対応づけ・見た目・プリセット・保存認証をすべて削除します。よろしいですか？'))return;try{const result=await post('/api/data/clear',{});dirty=false;settingsDirty=false;lastKey='';receive(result);$('#discord-form').reset();toast('このPCに保存した設定と認証を削除しました。');}catch(error){toast(error.message);}};
-window.addEventListener('beforeunload',event=>{if(dirty||settingsDirty){event.preventDefault();event.returnValue='';}});
+$('#clear-data').onclick=async()=>{if(!window.confirm('このPCの対応づけ・見た目・プリセット・保存認証をすべて削除します。よろしいですか？'))return;try{const result=await post('/api/data/clear',{});pendingDrafts.clear();dirty=false;settingsDirty=false;lastKey='';receive(result);$('#discord-form').reset();toast('このPCに保存した設定と認証を削除しました。');}catch(error){toast(error.message);}};
+window.addEventListener('beforeunload',event=>{if(dirty||settingsDirty||pendingDrafts.size){event.preventDefault();event.returnValue='';}});
 try{const bootstrap=await(await fetch('/api/bootstrap')).json();token=bootstrap.token;receive(bootstrap);const stream=new EventSource('/api/events');stream.onmessage=event=>receive(JSON.parse(event.data));stream.onerror=()=>{$('#notice').hidden=false;$('#notice').textContent='アプリとの接続が切れました。起動状態を確認してください。';};}catch{toast('アプリに接続できません。起動し直してください。');}
