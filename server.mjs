@@ -1,5 +1,6 @@
 import http from 'node:http';
-import {readFile} from 'node:fs/promises';
+import {readFile,stat} from 'node:fs/promises';
+import {createReadStream} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
@@ -11,7 +12,7 @@ import {GamePresentation} from './lib/game-presentation.mjs';
 import {APPLICATION} from './lib/application.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
-export async function createApp({directory=path.join(here,'data'),port=37891,credentialVault=null,settingsCipher=null,allowPlaintextSettings=false,clearLegacyData=async()=>{},discordClient,openExternal,now=Date.now}={}){
+export async function createApp({directory=path.join(here,'data'),port=37891,credentialVault=null,settingsCipher=null,allowPlaintextSettings=false,clearLegacyData=async()=>{},discordClient,openExternal,now=Date.now,licenseDirectory=here,readerLicenseDirectory=path.join(here,'reader')}={}){
   const store=new Store(directory,{cipher:settingsCipher,allowPlaintext:allowPlaintextSettings});await store.load();
   const csrf=randomBytes(32).toString('hex');
   const oauth=new OAuthFlow({application:APPLICATION,openExternal});
@@ -87,10 +88,19 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
         if(streams.size>=32){json(res,{error:'接続数が多すぎます。不要な表示画面を閉じてください。'},429);return;}
         res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});res.write('data: '+JSON.stringify(snapshot())+'\n\n');streams.add(res);res.on('close',()=>streams.delete(res));return;
       }
+      if(route.startsWith('/legal/')){
+        const root=licenseDirectory,rd=readerLicenseDirectory;
+        const files={'/legal/application':[root,'LICENSE-APPLICATION.txt'],'/legal/notices':[root,'THIRD-PARTY-NOTICES.md'],'/legal/electron':[root,'LICENSE'],'/legal/chromium':[root,'LICENSES.chromium.html'],'/legal/reader':[rd,'THIRD-PARTY-NOTICES-reader.md'],'/legal/dotnet':[rd,'LICENSE-dotnet.txt'],'/legal/dotnet-third-party':[rd,'THIRD-PARTY-NOTICES-dotnet.txt'],'/legal/capture':[rd,'LICENSE-AmongUsCapture.txt'],'/legal/assets':[root,'ASSET-NOTICES.md'],'/legal/ffmpeg-source':[root,'third-party-sources','FFmpeg-Electron-45.2.3-sources.zip']};
+        if(!files[route]){json(res,{error:'見つかりません。'},404);return;}
+        const file=path.join(...files[route]);let size;try{size=(await stat(file)).size;}catch{json(res,{error:'ライセンス文書は配布フォルダーで確認してください。'},404);return;}
+        const zip=route==='/legal/ffmpeg-source';res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
+        res.writeHead(200,{'Content-Type':zip?'application/zip':route==='/legal/chromium'?'text/html; charset=utf-8':'text/plain; charset=utf-8','Content-Length':size,...(zip?{'Content-Disposition':'attachment; filename="FFmpeg-Electron-45.2.3-sources.zip"'}:{})});
+        const stream=createReadStream(file);stream.on('error',()=>res.destroy());res.on('close',()=>stream.destroy());stream.pipe(res);return;
+      }
       if(/^\/icons\/au(?:red|blue|green|pink|orange|yellow|black|white|purple|brown|cyan|lime|maroon|rose|banana|gray|tan|coral)(?:dead)?\.png$/.test(route)){
         res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'});res.end(await readFile(path.join(here,'public',route.slice(1))));return;
       }
-      const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css'};
+      const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css','/licenses':'licenses.html'};
       if(!routes[route]){json(res,{error:'見つかりません。'},404);return;}
       const types={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
       res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.discordapp.com; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
