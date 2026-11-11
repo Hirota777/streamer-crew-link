@@ -8,7 +8,9 @@
     "start": "electron .",
     "start:server": "node server.mjs",
     "test": "node --test test/*.test.mjs",
-    "build": "node scripts/package.mjs"
+    "build": "node scripts/package.mjs",
+    "build:signed": "node scripts/package-signed.mjs",
+    "sign:package": "node scripts/sign-package.mjs"
   },
   "engines": {
     "node": ">=22"

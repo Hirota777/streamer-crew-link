@@ -4,6 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
+const signing=process.env.CREW_LINK_SIGN_REQUIRED==='1'?await (await import('./windows-signing.mjs')).prepareSigning():null;
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const staging=path.join(root,'build','app');
 if(path.relative(root,staging)!==path.join('build','app'))throw Error('Unexpected staging directory');
@@ -19,4 +20,4 @@ await fs.copyFile(path.join(root,'third_party','dotnet','LICENSE.txt'),path.join
 await fs.copyFile(path.join(root,'third_party','dotnet','ThirdPartyNotices.txt'),path.join(reader,'THIRD-PARTY-NOTICES-dotnet.txt'));
 await fs.copyFile(path.join(root,'reader','THIRD-PARTY-NOTICES-reader.md'),path.join(reader,'THIRD-PARTY-NOTICES-reader.md'));
 const results=await packager({dir:staging,out:path.join(root,'dist'),name:'Streamer crew link',platform:'win32',arch:'x64',electronVersion:'45.2.3',asar:true,prune:false,overwrite:true,icon:path.join(root,'assets','app.ico'),extraResource:[reader],win32metadata:{ProductName:'Streamer crew link',CompanyName:'Streamer crew link',FileDescription:'Among Us streaming companion'}});
-for(const output of results){for(const file of ['README.md','PRIVACY.md','TERMS.md','ASSET-NOTICES.md','OPERATIONS.md','DISTRIBUTION.md','SECURITY-REVIEW.md'])await fs.copyFile(path.join(root,file),path.join(output,file));console.log(output);}
+for(const output of results){if(signing)await (await import('./windows-signing.mjs')).signPackage(output,signing);for(const file of ['README.md','PRIVACY.md','TERMS.md','ASSET-NOTICES.md','OPERATIONS.md','DISTRIBUTION.md','SECURITY-REVIEW.md'])await fs.copyFile(path.join(root,file),path.join(output,file));console.log(output);}
