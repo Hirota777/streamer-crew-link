@@ -26,7 +26,7 @@ Nodeのサーバーだけを起動する場合はnpm run start:serverを使用�
 ## Discordの配布用設定
 アプリは公開クライアント・PKCE S256を使用し、Client Secretを要求しません。
 リダイレクトURIはhttp://127.0.0.1:37891/oauth/callbackです。
-要求スコープはidentify、rpc、rpc.voice.readです。一般公開の承認は別途必要です。DISTRIBUTION.mdを参照してください。
+要求スコープはidentify、rpc、rpc.voice.readです。現行アプリのDiscord連携は一般公開承認済みです（2026年11月12日、提供者確認）。別のApplication IDへ変更・フォークする場合、そのアプリの利用条件・承認は別途確認してください。DISTRIBUTION.mdを参照してください。
 
 ## 依存する取得情報
 reader/profiles.jsonはAmongUsCaptureの名前・色の読み取りに必要な対応表を抜粋したものです。
