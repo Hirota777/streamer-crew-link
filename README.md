@@ -23,7 +23,7 @@ ZIP版は `Streamer-crew-link-1.0.0-Windows-x64.zip` を全体展開して使用
 - [ライセンス・素材等の文書一覧](POLICIES.md)
 - [問い合わせ](https://github.com/Hirota777/streamer-crew-link/issues)
 
-Among Us、Innersloth、Discord等の公式製品ではありません。ソースの公開は、自作部分・第三者ソフトウェア・素材を一括して自由利用できることを意味しません。[自作部分の利用条件](LICENSE-APPLICATION.txt)と各ライセンスを確認してください。
+Among Us、Innersloth、Discord等の公式製品ではありません。自作コードは[MITライセンス](LICENSE-APPLICATION.txt)で提供し、改変・再配布・商用利用を認めます。第三者ソフトウェア・画像素材・商標には、それぞれのライセンス・許諾条件が適用されます。
 
 ## Discordを使わずに表示する
 
@@ -253,3 +253,7 @@ Discord不要の「Among Usのみ」表示モードを追加しました。ク�
 ## v1.00
 
 公開リリースへ移行し、規約・プライバシー・サポートを本体リポジトリに統合しました。アプリ内リンクとDiscord Developer Portalの文書URLも更新します。配布物はMSI・ZIP・各SHA256です。従来の表示機能・設定保存・プリセットの競合修正と、不要データを除いた配布構成を引き継ぎます。
+
+## Code signing policy
+
+[Code signing policy](CODE-SIGNING.md)を参照してください。SignPath Foundationの利用準備中で、申請・承認・署名はまだ完了していません。公開済みv1.00のMSI・アプリは未署名です。

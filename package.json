@@ -28,5 +28,5 @@
     "minimatch": "11.0.1"
   },
   "author": "Hirota777",
-  "license": "SEE LICENSE IN LICENSE-APPLICATION.txt"
+  "license": "MIT"
 }

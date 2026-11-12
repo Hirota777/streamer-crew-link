@@ -35,3 +35,11 @@ reader/profiles.jsonはAmongUsCaptureの名前・色の読み取りに必要な�
 ライセンスはreader/LICENSE-AmongUsCapture.txtに同梱しています。
 指定されたキャラクター表示素材はpublic/iconsに含めています。
 .NETのライセンスと第三者通知はthird_party/dotnetに含めています。
+
+## GitHub Actionsでの未署名ビルド
+
+Actionsの「Windows unsigned build」→「Run workflow」で実行します。GitHub-hosted
+Windowsでテスト・アプリ・MSIを作成し、未署名MSIとSHA256をActions成果物に保存します。
+WiX 3.14.1の公式バイナリはSHA256を確認して使用します。リリース公開や署名は行いません。
+SignPath承認後、同じビルド由来の成果物を署名申請する処理を追加します。
+申請準備は[SIGNPATH-APPLICATION.md](SIGNPATH-APPLICATION.md)を参照してください。

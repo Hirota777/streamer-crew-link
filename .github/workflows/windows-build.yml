@@ -1,0 +1,56 @@
+name: Windows unsigned build
+
+# Build provenance preparation for SignPath. This does not sign or publish releases.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+      - name: Run browser tests (Microsoft Edge)
+        run: npm run test:ui
+      - name: Download and verify WiX 3.14.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'wix314-binaries.zip'
+          Invoke-WebRequest 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip' -OutFile $archive
+          $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne '6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31') {
+            throw 'WiX archive checksum mismatch'
+          }
+          $wix = Join-Path $env:RUNNER_TEMP 'wix314'
+          Expand-Archive $archive -DestinationPath $wix
+          "CREW_LINK_WIX3_BIN=$wix" >> $env:GITHUB_ENV
+      - name: Build unsigned application
+        run: npm run build
+      - name: Build unsigned MSI
+        run: npm run build:msi
+      - name: Upload unsigned MSI and checksum
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-x64-unsigned-msi
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            dist/*.msi
+            dist/*MSI-SHA256.txt
