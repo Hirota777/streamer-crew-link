@@ -38,7 +38,8 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
    await new Promise((resolve,reject)=>{local.server.once('error',reject);local.server.listen(37891,'127.0.0.1',resolve);});
    const {startReader}=await import(pathToFileURL(path.join(__dirname,'lib','reader.mjs')).href);
    stopReader=startReader(app.isPackaged?path.join(process.resourcesPath,'reader'):path.join(__dirname,'reader','release'),local.ingestGame,local.setReaderStatus);
-   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'アプリ',submenu:[{label:'OBS表示を開く',click:()=>{openOverlay();}},{label:'ライセンス',click:()=>openLegal(address+'/licenses')},{type:'separator'},{label:'終了',role:'quit'}]},{label:'表示',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}]));
+   const updateMenu=await require('./lib/desktop-updates.cjs').setupUpdates({app,ipcMain,dialog,shell,Menu,data,base,address,getWindow:()=>win,onInstall:()=>{stopReader?.();}});
+   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'アプリ',submenu:[{label:'OBS表示を開く',click:()=>{openOverlay();}},{label:'ライセンス',click:()=>openLegal(address+'/licenses')},{type:'separator'},...updateMenu,{type:'separator'},{label:'終了',role:'quit'}]},{label:'表示',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}]));
    ipcMain.handle('crew-link:copy-overlay-url',async event=>{
     if(!win||event.sender!==win.webContents||event.senderFrame!==win.webContents.mainFrame||new URL(event.senderFrame.url).origin!==address||new URL(event.senderFrame.url).pathname!=='/')throw Error('コピーを実行できません。');
     await clipboard.writeText(address+'/overlay');

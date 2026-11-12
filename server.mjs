@@ -101,7 +101,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
       if(/^\/icons\/au(?:red|blue|green|pink|orange|yellow|black|white|purple|brown|cyan|lime|maroon|rose|banana|gray|tan|coral)(?:dead)?\.png$/.test(route)){
         res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'});res.end(await readFile(path.join(here,'public',route.slice(1))));return;
       }
-      const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css','/licenses':'licenses.html'};
+      const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/updates-ui.js':'updates-ui.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css','/licenses':'licenses.html'};
       if(!routes[route]){json(res,{error:'見つかりません。'},404);return;}
       const types={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
       res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.discordapp.com; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");

@@ -8,9 +8,10 @@ import {spawnSync} from 'node:child_process';
 
 const signing=process.env.CREW_LINK_SIGN_REQUIRED==='1'?await (await import('./windows-signing.mjs')).prepareSigning():null;
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const metadata=JSON.parse(await fs.readFile(path.join(root,'package.json'),'utf8'));
 const staging=path.join(root,'build','app');
 if(path.relative(root,staging)!==path.join('build','app'))throw Error('Unexpected staging directory');
-const dotnet=spawnSync('dotnet',['publish',path.join(root,'reader','CrewLink.Reader.csproj'),'-c','Release','-r','win-x64','--self-contained','true','-o',path.join(root,'reader','release'),'-p:PublishSingleFile=true','-p:IncludeNativeLibrariesForSelfExtract=true',`-p:PathMap=${root}=/_/src`],{cwd:root,stdio:'inherit',shell:false});
+const dotnet=spawnSync('dotnet',['publish',path.join(root,'reader','CrewLink.Reader.csproj'),'-c','Release','-r','win-x64','--self-contained','true','-o',path.join(root,'reader','release'),'-p:PublishSingleFile=true','-p:IncludeNativeLibrariesForSelfExtract=true',`-p:Version=${metadata.version}`,`-p:InformationalVersion=${metadata.version}`,'-p:IncludeSourceRevisionInInformationalVersion=false',`-p:Product=Streamer crew link`,`-p:PathMap=${root}=/_/src`],{cwd:root,stdio:'inherit',shell:false});
 if(dotnet.status!==0)throw Error('Reader build failed. Install the .NET 10 SDK.');
 await fs.rm(staging,{recursive:true,force:true});await fs.mkdir(staging,{recursive:true});
 for(const folder of ['lib','public'])await fs.cp(path.join(root,folder),path.join(staging,folder),{recursive:true});

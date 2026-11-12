@@ -1,8 +1,10 @@
 import {renderCrew} from './render.js';
 import {appendCharacter} from './icons.js';
+import {setupUpdateUI} from './updates-ui.js';
 const $=selector=>document.querySelector(selector);
 let state,token,draft=[],dirty=false,settingsDirty=false,saving=false,creatingPreset=false,editRevision=0,lastKey='',authUiSaved,layoutSource;
 const pendingDrafts=new Map();
+setupUpdateUI({canInstall:()=>!!state&&!dirty&&!settingsDirty&&!saving&&!creatingPreset&&!pendingDrafts.size});
 const draftKey=s=>s.mode+':'+s.preset.id;
 const views=['preview','mapping','connections'];
 const settingKeys=['displaySource','size','gap','characterScale','badgeSize','nameSize','colorBackground','bounceSpeaking','showCharacter','horizontalNamePosition','verticalNamePosition','orientation','showStatus','showNames','dimIdle'];
