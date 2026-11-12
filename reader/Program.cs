@@ -136,7 +136,7 @@ while(true){
     if(!stateReadFailed)life.Update(phase,players.Select(p=>new LifeSample(p.playerId,p.dead)).ToArray(),votedPlayer,publicCompletedMeetings:completedMeetings,deferredCollateralDeaths:deferredCollateralDeaths,confirmedExiles:snr?snrMeetings.ConfirmedExiles(Environment.TickCount64):null);
     if(snr&&!stateReadFailed)snrMeetings.Published(life);
     foreach(var p in players)playerKeys[p.playerId]="name:"+p.name;
-    var duplicates=players.GroupBy(p=>p.name).Where(g=>g.Count()>1).Select(g=>g.Key).ToHashSet();
+    var duplicates=PlayerNames.HideConflicts(players.Select(p=>p.name),departedKeys);
     var result=players.Where(p=>!duplicates.Contains(p.name)).Select(p=>{
         var dynamicColor=nebula||(snr&&p.colorId>=colors.Length);
         (nebula?palette:snrColors).TryGetValue(nebula?p.playerId:p.colorId,out var shade);
