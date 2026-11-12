@@ -14,7 +14,7 @@ export function setupUpdateUI({canInstall}){
   $('update-title').textContent=available?'新しいバージョンがあります':'アプリの更新';
   $('update-version').textContent=available?`${state.current} → ${release.version}`:'';
   $('update-message').textContent=[state.lastResult,message,available&&!installed?'ZIP版・開発版では、配布ページからMSI版をインストールしてください。':''].filter(Boolean).join(' ');
-  $('update-auto').checked=state.autoCheck;$('update-check').disabled=phase==='checking'||download;
+  $('update-auto').checked=state.autoCheck;$('update-auto').disabled=state.storageAvailable===false;$('update-check').disabled=phase==='checking'||download;
   $('update-progress').hidden=!download;$('update-progress').value=available&&release.size&&Number.isFinite(state.received)?Math.max(0,Math.min(100,state.received/release.size*100)):0;
   $('update-notes-wrap').hidden=!available;$('update-notes').textContent=release?.notes||'変更内容は配布ページをご確認ください。';
   $('update-download').hidden=!available||!installed||download||ready;

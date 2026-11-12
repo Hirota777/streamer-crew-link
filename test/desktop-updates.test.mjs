@@ -11,9 +11,9 @@ async function fixture({clean=[true,true],choice=0,prepare=true}={}){
  const invoke=(action,value,event={sender:win.webContents,senderFrame:win.webContents.mainFrame})=>handler(event,action,value);
  return {invoke,instance,jobs,app,counts:()=>({spawned,quit,stopped,opened})};
 }
-test('正規画面以外・不明な更新操作は拒否する',async()=>{const f=await fixture();await assert.rejects(f.invoke('status',undefined,{sender:{},senderFrame:{url:address+'/'}}));await assert.rejects(f.invoke('install-path','C:/bad'));f.app.emit('before-quit');});
-test('更新の確認を中止したらアプリと読取を終了しない',async()=>{const f=await fixture({choice:1});await f.invoke('install');assert.deepEqual(f.counts(),{spawned:0,quit:0,stopped:0,opened:0});f.app.emit('before-quit');});
-test('未保存編集がある場合はヘルパーも起動しない',async()=>{const f=await fixture({clean:[false]});await f.invoke('install');assert.equal(f.counts().spawned,0);assert.equal(f.counts().quit,0);f.app.emit('before-quit');});
-test('MSI検証ヘルパーの失敗時はアプリを残す',async()=>{const f=await fixture({prepare:false});await f.invoke('install');assert.equal(f.counts().quit,0);assert.match(f.instance.state.message,/MSI mismatch/);f.app.emit('before-quit');});
-test('検証待ちに編集されたら更新を中止し、試行ごとの中止ファイルを残す',async()=>{const f=await fixture({clean:[true,false]});await f.invoke('install');assert.equal(f.counts().quit,0);assert.equal(await readFile(f.jobs[0].cancel,'utf8'),'cancel');f.app.emit('before-quit');});
-test('検証・未保存確認が通った場合だけ更新を許可して終了する',async()=>{const f=await fixture();await f.invoke('install');assert.deepEqual(f.counts(),{spawned:1,quit:1,stopped:1,opened:0});assert.equal(await readFile(f.jobs[0].commit,'utf8'),'exit-authorized');f.app.emit('before-quit');});
+test('正規画面以外・不明な更新操作は拒否する',async()=>{const f=await fixture();await assert.rejects(f.invoke('status',undefined,{sender:{},senderFrame:{url:address+'/'}}));await assert.rejects(f.invoke('install-path','C:/bad'));f.app.emit('will-quit');});
+test('更新の確認を中止したらアプリと読取を終了しない',async()=>{const f=await fixture({choice:1});await f.invoke('install');assert.deepEqual(f.counts(),{spawned:0,quit:0,stopped:0,opened:0});f.app.emit('will-quit');});
+test('未保存編集がある場合はヘルパーも起動しない',async()=>{const f=await fixture({clean:[false]});await f.invoke('install');assert.equal(f.counts().spawned,0);assert.equal(f.counts().quit,0);f.app.emit('will-quit');});
+test('MSI検証ヘルパーの失敗時はアプリを残す',async()=>{const f=await fixture({prepare:false});await f.invoke('install');assert.equal(f.counts().quit,0);assert.match(f.instance.state.message,/MSI mismatch/);f.app.emit('will-quit');});
+test('検証待ちに編集されたら更新を中止し、試行ごとの中止ファイルを残す',async()=>{const f=await fixture({clean:[true,false]});await f.invoke('install');assert.equal(f.counts().quit,0);assert.equal(await readFile(f.jobs[0].cancel,'utf8'),'cancel');f.app.emit('will-quit');});
+test('検証・未保存確認が通った場合だけ更新を許可して終了する',async()=>{const f=await fixture();await f.invoke('install');assert.deepEqual(f.counts(),{spawned:1,quit:1,stopped:1,opened:0});assert.equal(await readFile(f.jobs[0].commit,'utf8'),'exit-authorized');f.app.emit('will-quit');});
