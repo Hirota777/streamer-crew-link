@@ -1,22 +1,29 @@
-# Streamer crew link — Windows配布テスト版
+# Streamer crew link v1.00
 
-Among Usの色とDiscordの参加者・発言状態を対応づけて、OBSに表示する非公式ツールです。Discord連携は利用を許可されたテスター向けです。「Among Usのみ」ではDiscordへの登録・許可は不要です。
+Among Usの色・名前・生存状態をOBSに表示する、Windows向けの非公式配信補助ツールです。通常版・Nebula・SNRに対応し、Discordなしでもクルー画像とゲーム内の名前を表示できます。
 
-## バージョンと配布状況
+## ダウンロード
 
-2026年11月11日更新。
+[最新リリース v1.00](https://github.com/Hirota777/streamer-crew-link/releases/tag/v1.00)から、通常は `Streamer-crew-link-1.0.0-Windows-x64.msi` を取得してください。Windows 10以降の64ビット版向けです。Node.jsや.NETの別途インストールは不要です。
 
-| 対象 | バージョン | 状況 |
-| --- | --- | --- |
-| 配布版・ソース | [v0.9.16-beta](https://github.com/Hirota777/streamer-crew-link/releases/tag/v0.9.16-beta) | Windows x64向けMSI・ZIP |
+インストール前に旧アプリを終了してください。同じWindowsユーザーの `%LOCALAPPDATA%\Programs\Streamer crew link` にインストールし、デスクトップとスタートメニューへショートカットを作ります。同じユーザーの既存設定・認証は引き継ぎます。旧ZIP版とMSI版を同時起動しないでください。
 
-通常は `Streamer-crew-link-0.9.16-Windows-x64.msi` を実行してください。同じWindowsユーザーの `%LOCALAPPDATA%\Programs\Streamer crew link` にインストールし、デスクトップとスタートメニューへショートカットを作ります。更新前は旧アプリを終了してください。従来のZIP版から移行しても、同じユーザーの保存設定・認証を使用します。旧ZIP版とMSI版を同時起動しないでください。
+ZIP版は `Streamer-crew-link-1.0.0-Windows-x64.zip` を全体展開して使用します。GitHubの「Source code」ZIPは実行用ではありません。各SHA256ファイルで配布物を照合できます。MSI・アプリは未署名です。アンインストール後も設定・認証は残す構成です。完全削除はアプリの保存データ削除機能をご利用ください。
 
-アンインストールしても設定・認証は保持します。完全に消す場合は、先にアプリの「保存データをすべて削除」を使用してください。MSIは未署名です。証明書による発行元の確認はできません。
+## Discord連携について
 
-ZIP版は `Streamer-crew-link-0.9.16-Windows-x64-beta.zip` を展開して利用します。ソースコードのZIPは実行用ではありません。GitHubの閲覧権限とDiscordのテスター登録は別々に必要です。
+公開リリースは、Discord RPCの一般利用承認を取得したことを意味しません。Discord連携はDiscord側で利用を許可されたアカウント向けです。許可されていない場合も「Among Usのみ」モードは利用できます。Discordの制限を回避する機能はありません。
 
-0.9.6以降のロビー移行対策と0.9.7のMADMATE巻き添え遅延反映を含みます。一般公開向けのDiscord RPC承認が完了したことを示す配布物ではありません。
+## 規約・プライバシー・問い合わせ
+
+文書とサポート窓口をこのリポジトリへ統合しました。旧文書リポジトリのURLには移転先の案内を残します。
+
+- [利用規約](TERMS.md)
+- [プライバシーポリシー](PRIVACY.md)
+- [ライセンス・素材等の文書一覧](POLICIES.md)
+- [問い合わせ](https://github.com/Hirota777/streamer-crew-link/issues)
+
+Among Us、Innersloth、Discord等の公式製品ではありません。ソースの公開は、自作部分・第三者ソフトウェア・素材を一括して自由利用できることを意味しません。[自作部分の利用条件](LICENSE-APPLICATION.txt)と各ライセンスを確認してください。
 
 ## Discordを使わずに表示する
 
@@ -242,3 +249,7 @@ Discord不要の「Among Usのみ」表示モードを追加しました。ク�
 ## 0.9.13
 
 ライセンス画面と自作部分の著作権表示を追加しました。第三者の権利・個別ライセンスを明示し、FFmpegの対応ソース・Electronのパッチ・ビルド情報を配布ZIPへ同梱します。FFmpegのバイナリとソースの版・ハッシュが合わない場合は配布作成を停止します。Readerの旧Microsoft依存をMITライセンスの新版へ更新し、通知文書を再生成しました。原作IPの許諾やDiscord API承認を取得したことを意味しません。
+
+## v1.00
+
+公開リリースへ移行し、規約・プライバシー・サポートを本体リポジトリに統合しました。アプリ内リンクとDiscord Developer Portalの文書URLも更新します。配布物はMSI・ZIP・各SHA256です。従来の表示機能・設定保存・プリセットの競合修正と、不要データを除いた配布構成を引き継ぎます。

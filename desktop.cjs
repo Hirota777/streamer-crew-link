@@ -52,7 +52,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
  app.on('window-all-closed',()=>app.quit());
  app.on('before-quit',()=>{quitting=true;stopReader?.();local?.shutdown();});
 }
-const publicLinks=new Set(['https://github.com/Hirota777/streamer-crew-link-docs/blob/Test/PRIVACY.md','https://github.com/Hirota777/streamer-crew-link-docs/blob/Test/TERMS.md','https://github.com/Hirota777/streamer-crew-link-docs/issues']);
+const publicLinks=new Set(['https://github.com/Hirota777/streamer-crew-link/blob/main/PRIVACY.md','https://github.com/Hirota777/streamer-crew-link/blob/main/TERMS.md','https://github.com/Hirota777/streamer-crew-link/issues']);
 function secure(window){
  window.webContents.setWindowOpenHandler(({url})=>{if(url===address+'/overlay'){openOverlay();}else if(legalPaths.has(new URL(url).pathname)&&new URL(url).origin===address){openLegal(url);}else if(publicLinks.has(url)){shell.openExternal(url).catch(()=>{});}return {action:'deny'};});
  window.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith(address+'/'))event.preventDefault();});

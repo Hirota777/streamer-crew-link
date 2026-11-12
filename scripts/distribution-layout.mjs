@@ -3,7 +3,7 @@ import path from 'node:path';
 
 // Packaged legal routes read these from the installation root, not app.asar.
 export const runtimeFiles=['desktop.cjs','preload.cjs','server.mjs','package.json'];
-export const userDocuments=['README.md','PRIVACY.md','TERMS.md','ASSET-NOTICES.md','OPERATIONS.md'];
+export const userDocuments=['README.md','PRIVACY.md','TERMS.md','POLICIES.md','ASSET-NOTICES.md','OPERATIONS.md'];
 export const retainedLocales=['en-US.pak','ja.pak'];
 
 export async function trimLocales(output){
