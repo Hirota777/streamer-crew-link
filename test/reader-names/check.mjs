@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {GamePresentation} from '../../lib/game-presentation.mjs';
+import {cleanGame} from '../../lib/state.mjs';
+const output=execFileSync(process.env.DOTNET_HOST_PATH||'dotnet',['run','--project',fileURLToPath(new URL('./Fixture.csproj',import.meta.url))],{encoding:'utf8'});
+const frames=output.split(/\r?\n/).filter(line=>line.startsWith('{')).map(line=>cleanGame(JSON.parse(line)));
+assert.equal(frames.length,3);
+let time=0;const presentation=new GamePresentation({now:()=>time});
+presentation.update(frames[0]);assert.deepEqual(presentation.view().map(p=>p.key),['name:A','name:B']);
+time=100;presentation.update(frames[1]);assert.deepEqual(presentation.view().map(p=>p.key),['name:B'],'Duplicate name retained an old player in OBS');
+time=200;presentation.update(frames[2]);assert.deepEqual(new Set(presentation.view().map(p=>p.key)),new Set(['name:A','name:B']));
+console.log('Reader → API → OBS checks passed: unique names, immediate conflict suppression, unaffected participant and recovery.');
