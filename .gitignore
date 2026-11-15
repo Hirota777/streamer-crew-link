@@ -20,6 +20,8 @@ test/reader-trust/obj/
 *.pem
 *.key
 *.zip
+!third_party/sources/FFmpeg-Electron-45.2.3-sources.zip
+!third_party/sources/WiX-3.14.1-sources.zip
 
 test/reader-life/bin/
 test/reader-life/obj/
@@ -32,3 +34,6 @@ test/reader-meeting-probe/obj/
 
 test/reader-snr-state/bin/
 test/reader-snr-state/obj/
+
+__pycache__/
+*.py[cod]

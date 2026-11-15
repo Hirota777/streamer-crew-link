@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+test('OBS作成ボタンの再利用・停止・再起動・削除後の再作成・失敗時の解放を検証する',{skip:process.platform!=='win32'},t=>{const result=spawnSync('python',[fileURLToPath(new URL('../test-support/obs-auto-create.py',import.meta.url))],{encoding:'utf8'});if(result.status===77){t.skip('OBS Lua runtime unavailable');return;}assert.equal(result.status,0,result.stdout+result.stderr);assert.match(result.stdout,/references passed/);});

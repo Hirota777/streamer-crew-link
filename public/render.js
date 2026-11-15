@@ -1,7 +1,8 @@
 import {appendCharacter,statusBadgeSvg} from './icons.js';
 export function renderCrew(target,state){
   const s=state.preset.settings,gameOnly=s.displaySource==='game';target.classList.toggle('game-only',gameOnly);target.style.setProperty('--crew-size',s.size+'px');target.style.setProperty('--crew-gap',s.gap+'px');target.style.setProperty('--name-size',(s.nameSize??12)+'px');
-  target.style.setProperty('--character-scale',String((s.characterScale??100)/100));target.style.setProperty('--badge-ratio',String((s.badgeSize??42)/100));target.classList.toggle('vertical',s.orientation==='vertical');
+  target.style.setProperty('--motion-height',(s.motionHeight??s.size*.08*(s.motionStrength==='subtle'?.5:s.motionStrength==='strong'?1.5:1))+'px');
+  target.style.setProperty('--name-opacity',String((s.nameOpacity??92)/100));target.style.setProperty('--character-scale',String((s.characterScale??100)/100));target.style.setProperty('--badge-ratio',String((s.badgeSize??42)/100));target.classList.toggle('vertical',s.orientation==='vertical');
   const namePosition=s.orientation==='vertical'?(s.verticalNamePosition??'overlap'):(s.horizontalNamePosition??'below');
   target.dataset.namePosition=namePosition;target.classList.toggle('color-background',s.colorBackground===true);target.classList.toggle('bounce-speaking',!gameOnly&&s.bounceSpeaking===true);target.classList.toggle('hide-character',!gameOnly&&s.showCharacter===false);
   const rows=state.rows.filter(r=>r.visible&&r.player&&(gameOnly||r.member));
@@ -30,6 +31,6 @@ export function renderCrew(target,state){
 }
 if(document.body.classList.contains('overlay')){
   if(new URL(location.href).searchParams.get('preview')==='1')document.body.classList.add('overlay-preview');
-  const stream=new EventSource('/api/events');stream.onmessage=e=>{const state=JSON.parse(e.data);renderCrew(document.querySelector('#overlay-crew'),state);document.querySelector('#overlay-demo').hidden=state.mode!=='demo';};
+  const stream=new EventSource('/api/live-events');stream.onmessage=e=>{const state=JSON.parse(e.data);renderCrew(document.querySelector('#overlay-crew'),state);document.querySelector('#overlay-demo').hidden=state.mode!=='demo';};
   stream.onerror=()=>document.querySelector('#overlay-crew').replaceChildren();
 }

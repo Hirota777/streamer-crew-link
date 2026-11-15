@@ -38,7 +38,7 @@ test('APIやOBSへ認証情報を返さず、初回連携・保存・削除を�
  const directory=await mkdtemp(path.join(os.tmpdir(),'crewlink-auth-api-'));let record=null;
  class Client extends EventEmitter {members=[];channel=null;status='未接続';async connect(options){if(options.interactive)await options.onToken({accessToken:'test-private-access',refreshToken:'test-private-refresh',expiresAt:Date.now()+3600000});this.status='接続中';this.channel={id:'voice',name:'テスト'};this.emit('change');}close(){this.members=[];this.channel=null;this.emit('change');}}
  const vault={available:async()=>true,load:async()=>record,save:async r=>{record=r;},clear:async()=>{record=null;}};
- const port=37933,app=await createApp({allowPlaintextSettings:true,directory,port,credentialVault:vault,discordClient:new Client()});await new Promise(r=>app.server.listen(port,'127.0.0.1',r));const base=`http://127.0.0.1:${port}`;
+ const port=37933,app=await createApp({allowPlaintextSettings:true,directory,port,credentialVault:vault,rpcEnabled:true,discordClient:new Client()});await new Promise(r=>app.server.listen(port,'127.0.0.1',r));const base=`http://127.0.0.1:${port}`;
  try{
   const initial=await(await fetch(base+'/api/bootstrap')).json();const headers={'Content-Type':'application/json','X-App-Token':initial.token};
   const connected=await fetch(base+'/api/discord/connect',{method:'POST',headers,body:JSON.stringify({clientId:'123456789012345678',clientSecret:'test-private-secret',remember:true})});assert.equal(connected.status,200);

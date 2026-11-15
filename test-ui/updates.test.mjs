@@ -7,11 +7,11 @@ test('更新通知の表示・スキップ・設定・旧応答・未保存時�
  await page.goto(`http://127.0.0.1:${port}`);await page.locator('#update-download').waitFor({state:'visible'});
  assert.match(await page.locator('#update-version').textContent(),/1.0.1 → 1.0.2/);assert.equal(await page.locator('#update-notes img').count(),0);
  await page.locator('#update-skip').click();assert.equal(await page.evaluate(()=>window.updateActions.at(-1).action),'skip');
- await page.getByRole('tab',{name:'接続',exact:true}).click();await page.locator('.update-settings>summary').click();await page.locator('#update-auto').uncheck();assert.equal(await page.evaluate(()=>window.updateActions.at(-1).action),'preference');
+ await page.getByRole('tab',{name:'初期設定',exact:true}).click();await page.locator('.update-settings>summary').click();await page.locator('#update-auto').uncheck();assert.equal(await page.evaluate(()=>window.updateActions.at(-1).action),'preference');
  await page.evaluate(()=>window.emitUpdate({revision:3,phase:'ready',current:'1.0.1',installed:true,autoCheck:false,message:'完了',release:{version:'1.0.2',size:100}}));
  await page.evaluate(()=>window.emitUpdate({revision:2,phase:'available',current:'1.0.1',installed:true,autoCheck:true,release:{version:'1.0.0',size:100}}));assert.equal(await page.locator('#update-install').isVisible(),true);assert.match(await page.locator('#update-version').textContent(),/1.0.2/);
  await page.getByRole('tab',{name:'配信画面',exact:true}).click();await page.locator('.display-options>summary').click();await page.locator('#nameSize').fill('24');await page.locator('#nameSize').dispatchEvent('input');await page.locator('#update-install').click();assert.match(await page.locator('#update-message').textContent(),/未保存/);assert.equal(await page.evaluate(()=>window.updateActions.some(a=>a.action==='install')),false);
- await page.locator('#save').click();await page.waitForFunction(()=>document.querySelector('#save-label').textContent==='保存済み');await page.locator('#update-install').click();assert.equal(await page.evaluate(()=>window.updateActions.some(a=>a.action==='install')),true);
+ await page.getByRole('tab',{name:'配信画面',exact:true}).click();await page.locator('#save-display').click();await page.waitForFunction(()=>document.querySelector('#save-label').textContent==='保存済み');await page.locator('#update-install').click();assert.equal(await page.evaluate(()=>window.updateActions.some(a=>a.action==='install')),true);
  assert.deepEqual(errors,[]);
  }finally{await browser.close();app.shutdown();}
 });

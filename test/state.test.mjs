@@ -6,11 +6,11 @@ import path from 'node:path';
 import {Store,cleanGame,cleanLinks} from '../lib/state.mjs';
 import {Decoder,frame,Discord} from '../lib/discord.mjs';
 
-test('対応づけ・表示設定を保存し再起動後に復元、別プリセットを分離',async()=>{
+test('対応づけ・表示設定を保存し再起動後に復元、見た目切替でも対応づけを共用',async()=>{
  const dir=await mkdtemp(path.join(os.tmpdir(),'crewlink-'));try{
  const s=new Store(dir,{allowPlaintext:true});await s.load();await s.save({links:[{gameKey:'account:a',discordId:'123',label:'配信用',visible:true}],settings:{size:100,gap:20}});
  const r=new Store(dir,{allowPlaintext:true});await r.load();assert.equal(r.current.links[0].label,'配信用');assert.equal(r.current.settings.size,100);
- await r.create('別メンバー');await r.save({links:[],settings:{size:60}});await r.select('default');assert.equal(r.current.links.length,1);
+ await r.create('別の見た目');await r.save({settings:{size:60}});await r.select('default');assert.equal(r.current.links.length,1);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
 test('重複したDiscordユーザーやゲームIDを拒否',()=>{

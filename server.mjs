@@ -4,36 +4,39 @@ import {createReadStream} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
-import {Store,cleanGame} from './lib/state.mjs';
+import {Store,cleanGame,cleanSettings,cleanLinks} from './lib/state.mjs';
 import {DiscordSession} from './lib/discord-session.mjs';
 import {Discord} from './lib/discord.mjs';
 import {OAuthFlow} from './lib/oauth.mjs';
 import {GamePresentation} from './lib/game-presentation.mjs';
 import {APPLICATION} from './lib/application.mjs';
+import {ObsStyleExport,createObsStyle} from './lib/obs-style.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
-export async function createApp({directory=path.join(here,'data'),port=37891,credentialVault=null,settingsCipher=null,allowPlaintextSettings=false,clearLegacyData=async()=>{},discordClient,openExternal,now=Date.now,licenseDirectory=here,readerLicenseDirectory=path.join(here,'reader')}={}){
+export async function createApp({directory=path.join(here,'data'),port=37891,credentialVault=null,settingsCipher=null,allowPlaintextSettings=false,clearLegacyData=async()=>{},discordClient,rpcEnabled=false,openExternal,now=Date.now,spriteEncoder=null,licenseDirectory=here,readerLicenseDirectory=path.join(here,'reader')}={}){
   const store=new Store(directory,{cipher:settingsCipher,allowPlaintext:allowPlaintextSettings});await store.load();
+  const obsExport=new ObsStyleExport(directory,{spriteEncoder,now});
   const csrf=randomBytes(32).toString('hex');
   const oauth=new OAuthFlow({application:APPLICATION,openExternal});
   const client=discordClient??new Discord({authorize:()=>oauth.begin(),cancelAuthorization:()=>oauth.cancel()});
-  const discord=new DiscordSession({vault:credentialVault,client}), streams=new Set();await discord.initialize();
+  const discord=new DiscordSession({vault:credentialVault,client}), streams=new Set(),liveStreams=new Set();await discord.initialize();
   const presentation=new GamePresentation({now});
   const instanceId=randomBytes(16).toString('hex');let stateVersion=0;
   let game=null,lastGame=null,mode='live',demoTimer=null,connecting=false,reader={status:'waiting',message:'Among Usの起動を待っています'};
   const demoGame={version:'表示確認用',modVersion:'デモ',scene:'Lobby',lifeTracking:true,players:Array.from({length:11},(_,i)=>({key:'demo-game-'+i,name:['しろ','くろ','もも','そら','あお','むらさき','きいろ','みどり','あか','ライム','ローズ'][i],color:['#d6e0f0','#353846','#f3a6c5','#38e7df','#253fcd','#7739c4','#fff3a1','#147a45','#ca243e','#6ae33d','#d448aa'][i],colorId:[7,6,3,10,1,8,5,2,0,11,13][i],lifeState:i===2?'dead':i===5?'exiled':'alive',stable:false}))};
   let demoMembers=[];
-  function snapshot(){
-    const isDemo=mode==='demo', online=isDemo||(lastGame!==null&&now()-lastGame<5000);
+  function snapshot(liveOnly=false){
+    const isDemo=mode==='demo'&&!liveOnly, online=isDemo||(lastGame!==null&&now()-lastGame<5000);
     const g=isDemo?demoGame:(online?game:null),members=isDemo?demoMembers:discord.members;
     const displayPlayers=isDemo?demoGame.players:presentation.view();
-    const preset=store.current;
+    const preset=liveOnly?{...store.current,settings:{...store.current.settings,displaySource:'game'}}:store.current;
     const links=isDemo?demoGame.players.map((p,i)=>({gameKey:p.key,discordId:'demo-user-'+i,label:'',visible:true,order:i})):preset.links;
     const gameOnly=preset.settings.displaySource==='game';
-    const rows=gameOnly?displayPlayers.map((player,order)=>({gameKey:player.key,label:player.name,visible:true,order,player,member:null})):links.map(l=>{const player=displayPlayers.find(p=>p.key===l.gameKey),member=members.find(m=>m.id===l.discordId);return {...l,player:player??null,member:member??null};});
-    return {instanceId,stateVersion:++stateVersion,mode,reader,game:{online,lifeTracking:g?.lifeTracking===true,scene:g?.scene??'',version:g?.version??'',modVersion:g?.modVersion??'',players:g?.players??[],displayPlayers},discord:{status:isDemo?'デモ表示中':discord.status,channel:isDemo?'表示確認用':discord.channel?.name??'',members,auth:discord.info()},preset, presets:store.data.presets.map(p=>({id:p.id,name:p.name})),rows,overlayUrl:`http://127.0.0.1:${port}/overlay`,unmapped:gameOnly?0:g?.players.filter(p=>!links.some(l=>l.gameKey===p.key)).length??0};
+    const rows=gameOnly?displayPlayers.map((player,order)=>({gameKey:player.key,label:player.name,visible:true,order,player,member:null})):links.map(l=>{const player=displayPlayers.find(p=>p.key===l.gameKey),member=members.find(m=>m.id===l.discordId);return {...l,visible:!!player&&(isDemo||/^[0-9]{15,22}$/.test(l.discordId)),player:player??null,member:member??null};});
+    return {instanceId,stateVersion:++stateVersion,mode:isDemo?'demo':'live',reader,streamkitProfiles:store.data.streamkitProfiles,activeStreamkit:store.data.activeStreamkit,preferences:store.data.preferences,obs:obsExport.view(),game:{online,lifeTracking:g?.lifeTracking===true,scene:g?.scene??'',version:g?.version??'',modVersion:g?.modVersion??'',players:g?.players??[],displayPlayers},discord:{status:isDemo?'デモ表示中':discord.status,channel:isDemo?'表示確認用':discord.channel?.name??'',members,auth:discord.info()},preset,displayPreset:store.display,displayPresets:store.data.displayPresets.map(p=>({id:p.id,name:p.name})),rows,overlayUrl:`http://127.0.0.1:${port}/overlay`,unmapped:gameOnly?0:g?.players.filter(p=>!links.some(l=>l.gameKey===p.key&&/^[0-9]{15,22}$/.test(l.discordId))).length??0};
   }
-  function broadcast(){const payload='data: '+JSON.stringify(snapshot())+'\n\n';for(const s of streams){if(s.writableLength>512*1024){streams.delete(s);s.destroy();}else s.write(payload);}}
+  function send(streams,payload){for(const s of streams){if(s.writableLength>512*1024){streams.delete(s);s.destroy();}else s.write(payload);}}
+  function broadcast(){const state=snapshot();if(mode==='live')obsExport.update(state);const payload='data: '+JSON.stringify(state)+'\n\n';send(streams,payload);if(liveStreams.size)send(liveStreams,'data: '+JSON.stringify(snapshot(true))+'\n\n');}
   discord.on('change',broadcast);
   function stopDemo(){clearInterval(demoTimer);demoTimer=null;demoMembers=[];mode='live';}
   function startDemo(){stopDemo();mode='demo';demoMembers=demoGame.players.map((p,i)=>({id:'demo-user-'+i,name:['Shiro','Kuro','Momo','Sora','Ao','Murasaki','Kiiro','Midori','Aka','Lime','Rose'][i],avatar:null,speaking:false}));demoTimer=setInterval(()=>{demoMembers.forEach((m,i)=>m.speaking=i===Math.floor(Date.now()/1100)%11);broadcast();},400);}
@@ -57,15 +60,33 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
         if(req.headers.origin&&!['http://127.0.0.1:'+port,'http://localhost:'+port].includes(req.headers.origin)){json(res,{error:'接続元が不正です。'},403);return;}
         const b=await body(req);
         switch(route){
+          case '/api/preview':{
+            const current=snapshot(),settings=cleanSettings(b.settings),players=b.sampleCount&&mode==='demo'?current.game.displayPlayers.slice(0,[3,6,11].includes(b.sampleCount)?b.sampleCount:11):current.game.displayPlayers;
+            const links=mode==='demo'?players.map((p,i)=>({gameKey:p.key,discordId:String(800000000000000000n+BigInt(i)),label:p.name,visible:true})):cleanLinks(b.links??[]);
+            const previewState={preset:{settings,links},game:{displayPlayers:players}};
+            const style=createObsStyle(previewState,{spriteEncoder});
+            const rows=links.filter(l=>/^[0-9]{15,22}$/.test(l.discordId)&&players.some(p=>p.key===l.gameKey)).map(l=>({...l,player:players.find(p=>p.key===l.gameKey)??null}));
+            json(res,{...style,rows});return;
+          }
+          case '/api/streamkit/save':{const savedId=await store.saveStreamkit(b);broadcast();json(res,{...snapshot(),streamkitSavedId:savedId});return;}
+          case '/api/streamkit/select':await store.selectStreamkit(b.id);break;
+          case '/api/streamkit/delete':await store.removeStreamkit(b.id,b.revision);break;
+          case '/api/presets/rename':await store.rename(b.id,b.name,b.kind);break;
+          case '/api/presets/delete':await store.remove(b.id,b.kind);break;
+          case '/api/presets/import-preview':json(res,store.cleanImport(b.value));return;
+          case '/api/presets/import':await store.importPreset(b.value);break;
+          case '/api/preferences':await store.preferences(b);break;
           case '/api/save':await store.save(b,{settingsOnly:mode==='demo'});break;
-          case '/api/presets/create':await store.create(b.name,b.presetId);break;
-          case '/api/presets/select':await store.select(b.id);break;
+          case '/api/obs/export':if(mode==='demo'&&b.enabled)throw Error('デモを終了してからOBS連携を開始してください。');obsExport.setEnabled(b.enabled,snapshot());break;
+          case '/api/display-presets/create':await store.create(b.name,b.displayPresetId,'display',b);break;
+          case '/api/display-presets/select':await store.select(b.id,'display');break;
           case '/api/demo':b.enabled?startDemo():stopDemo();break;
           case '/api/discord/connect':
+            if(!rpcEnabled)throw Error('この検証版ではRPC連携を使用しません。公式Streamkitを使用してください。');
             if(connecting)throw Error('接続処理中です。Discordの認証画面を確認してください。');
             stopDemo();connecting=true;
             try{await discord.connect(b);}finally{connecting=false;}break;
-          case '/api/discord/reconnect':stopDemo();await discord.reconnect();break;
+          case '/api/discord/reconnect':if(!rpcEnabled)throw Error('この検証版ではRPC連携を使用しません。');stopDemo();await discord.reconnect();break;
           case '/api/discord/disconnect':discord.disconnect();break;
           case '/api/discord/forget':await discord.forget();break;
           case '/api/data/clear':stopDemo();await discord.forget();await store.reset();await clearLegacyData();break;
@@ -84,10 +105,12 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
         res.end('<!doctype html><html lang="ja"><meta charset="utf-8"><title>Streamer crew link</title><h1>認証の応答を受け取りました</h1><p>Streamer crew linkに戻って接続結果を確認してください。このタブは閉じられます。</p></html>');return;
       }
       if(route==='/api/bootstrap'){json(res,{token:csrf,...snapshot()});return;}
+      if(route==='/api/presets/export'){json(res,store.exportPreset(url.searchParams.get('kind'),url.searchParams.get('id')));return;}
       if(route==='/api/state'){json(res,snapshot());return;}
-      if(route==='/api/events'){
-        if(streams.size>=32){json(res,{error:'接続数が多すぎます。不要な表示画面を閉じてください。'},429);return;}
-        res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});res.write('data: '+JSON.stringify(snapshot())+'\n\n');streams.add(res);res.on('close',()=>streams.delete(res));return;
+      if(route==='/api/events'||route==='/api/live-events'){
+        const target=route==='/api/live-events'?liveStreams:streams;
+        if(streams.size+liveStreams.size>=32){json(res,{error:'接続数が多すぎます。不要な表示画面を閉じてください。'},429);return;}
+        res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});res.write('data: '+JSON.stringify(snapshot(route==='/api/live-events'))+'\n\n');target.add(res);res.on('close',()=>target.delete(res));return;
       }
       if(route.startsWith('/legal/')){
         const root=licenseDirectory,rd=readerLicenseDirectory;
@@ -101,16 +124,17 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
       if(/^\/icons\/au(?:red|blue|green|pink|orange|yellow|black|white|purple|brown|cyan|lime|maroon|rose|banana|gray|tan|coral)(?:dead)?\.png$/.test(route)){
         res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'});res.end(await readFile(path.join(here,'public',route.slice(1))));return;
       }
-      const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/updates-ui.js':'updates-ui.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css','/licenses':'licenses.html'};
+      const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/preset-manager.js':'preset-manager.js','/streamkit.js':'streamkit.js','/updates-ui.js':'updates-ui.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css','/licenses':'licenses.html'};
       if(!routes[route]){json(res,{error:'見つかりません。'},404);return;}
       const types={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
       res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.discordapp.com; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
       res.writeHead(200,{'Content-Type':types[path.extname(routes[route])]+'; charset=utf-8','Cache-Control':'no-cache'});res.end(await readFile(path.join(here,'public',routes[route])));
-    }catch(e){json(res,{error:e.message||'処理に失敗しました。'},400);}
+    }catch(e){json(res,{error:e.message||'処理に失敗しました。',...(e.code==='MEMBER_CONFLICT'?{code:e.code}:{})},e.code==='MEMBER_CONFLICT'?409:400);}
   });
-  function shutdown(){clearInterval(timer);stopDemo();discord.shutdown();for(const s of streams)s.end();streams.clear();server.close();}
-  server.on('close',()=>{clearInterval(timer);stopDemo();discord.shutdown();for(const s of streams)s.end();});
-  return {server,store,snapshot,shutdown,startDiscord:()=>store.current.settings.displaySource==='game'?Promise.resolve():discord.start(),ingestGame(body){game=cleanGame(body);lastGame=now();presentation.update(game);broadcast();},setReaderStatus(status,message){reader={status,message};presentation.status(status);if(status!=='connected'){game=null;lastGame=null;}broadcast();}};
+  function shutdown(){obsExport.close();clearInterval(timer);stopDemo();discord.shutdown();for(const s of [...streams,...liveStreams])s.end();streams.clear();liveStreams.clear();server.close();}
+  server.on('close',()=>{obsExport.close();clearInterval(timer);stopDemo();discord.shutdown();for(const s of [...streams,...liveStreams])s.end();streams.clear();liveStreams.clear();});
+  if(store.data.preferences.autoStartObs&&store.current.settings.displaySource==='streamkit'&&store.current.streamkitUrl)try{obsExport.setEnabled(true,snapshot());}catch{obsExport.info.error='OBS連携を自動で開始できません。';}
+  return {server,store,snapshot,shutdown,obsExport,startDiscord:()=>!rpcEnabled||store.current.settings.displaySource==='game'?Promise.resolve():discord.start(),ingestGame(body){game=cleanGame(body);lastGame=now();presentation.update(game);broadcast();},setReaderStatus(status,message){reader={status,message};presentation.status(status);if(status!=='connected'){game=null;lastGame=null;}broadcast();}};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   try{const port=37891;const {server}=await createApp({port});server.on('error',e=>{console.error(e.code==='EADDRINUSE'?'すでに起動しているか、ポート37891が使用中です。':e.message);process.exitCode=1;});server.listen(port,'127.0.0.1',()=>console.log(`管理画面 http://127.0.0.1:${port}\nOBS用 http://127.0.0.1:${port}/overlay\n終了するには Ctrl+C`));}catch(e){console.error(e.message);process.exitCode=1;}

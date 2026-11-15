@@ -14,7 +14,7 @@ if(path.relative(root,staging)!==path.join('build','app'))throw Error('Unexpecte
 const dotnet=spawnSync('dotnet',['publish',path.join(root,'reader','CrewLink.Reader.csproj'),'-c','Release','-r','win-x64','--self-contained','true','-o',path.join(root,'reader','release'),'-p:PublishSingleFile=true','-p:IncludeNativeLibrariesForSelfExtract=true',`-p:Version=${metadata.version}`,`-p:InformationalVersion=${metadata.version}`,'-p:IncludeSourceRevisionInInformationalVersion=false',`-p:Product=Streamer crew link`,`-p:PathMap=${root}=/_/src`],{cwd:root,stdio:'inherit',shell:false});
 if(dotnet.status!==0)throw Error('Reader build failed. Install the .NET 10 SDK.');
 await fs.rm(staging,{recursive:true,force:true});await fs.mkdir(staging,{recursive:true});
-for(const folder of ['lib','public'])await fs.cp(path.join(root,folder),path.join(staging,folder),{recursive:true});
+for(const folder of ['lib','public','obs'])await fs.cp(path.join(root,folder),path.join(staging,folder),{recursive:true});
 for(const file of runtimeFiles)await fs.copyFile(path.join(root,file),path.join(staging,file));
 const reader=path.join(root,'build','extra','reader');await fs.mkdir(reader,{recursive:true});
 await fs.copyFile(path.join(root,'reader','release','CrewLink.Reader.exe'),path.join(reader,'CrewLink.Reader.exe'));
