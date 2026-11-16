@@ -11,7 +11,7 @@
 | ClrMD等のReader依存 | resources/reader/THIRD-PARTY-NOTICES-reader.md |
 | AmongUsCapture由来の対応情報 | MIT。resources/reader/LICENSE-AmongUsCapture.txt |
 | MSIのWiX標準画面 | Microsoft Reciprocal License (MS-RL)。LICENSE-WiX.txtとthird-party-sources/WiX-3.14.1-sources.zipをMSIへ同梱。自作アプリ全体にMS-RLを適用するものではありません。 |
-| クルー画像・アプリアイコン | ASSET-NOTICES.md。ライブラリのMITとは別の権利です |
+| クルー画像・アプリアイコン | AmongUsCaptureのPlayers素材とその色変更・合成。MIT、Copyright (c) 2020 Denver Quane。LICENSE-AmongUsCapture-Players.txtおよびASSET-NOTICES.md。原作IPの権利は別途扱います |
 
 ## FFmpegの対応ソース
 

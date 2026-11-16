@@ -1,6 +1,6 @@
 import {readFile,copyFile,mkdir,access,writeFile} from 'node:fs/promises';
 import path from 'node:path';import {createHash} from 'node:crypto';
-export const applicationNotices=['LICENSE-APPLICATION.txt','THIRD-PARTY-NOTICES.md'];
+export const applicationNotices=['LICENSE-APPLICATION.txt','THIRD-PARTY-NOTICES.md','LICENSE-AmongUsCapture-Players.txt'];
 const sha=data=>createHash('sha256').update(data).digest('hex');
 export async function copyLicenseAssets(root,output){
  const sourceRoot=path.join(root,'third_party','sources'),manifest=JSON.parse(await readFile(path.join(sourceRoot,'manifest.json'),'utf8'));

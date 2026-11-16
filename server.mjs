@@ -114,7 +114,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
       }
       if(route.startsWith('/legal/')){
         const root=licenseDirectory,rd=readerLicenseDirectory;
-        const files={'/legal/application':[root,'LICENSE-APPLICATION.txt'],'/legal/notices':[root,'THIRD-PARTY-NOTICES.md'],'/legal/electron':[root,'LICENSE'],'/legal/chromium':[root,'LICENSES.chromium.html'],'/legal/reader':[rd,'THIRD-PARTY-NOTICES-reader.md'],'/legal/dotnet':[rd,'LICENSE-dotnet.txt'],'/legal/dotnet-third-party':[rd,'THIRD-PARTY-NOTICES-dotnet.txt'],'/legal/capture':[rd,'LICENSE-AmongUsCapture.txt'],'/legal/assets':[root,'ASSET-NOTICES.md'],'/legal/ffmpeg-source':[root,'third-party-sources','FFmpeg-Electron-45.2.3-sources.zip']};
+        const files={'/legal/application':[root,'LICENSE-APPLICATION.txt'],'/legal/notices':[root,'THIRD-PARTY-NOTICES.md'],'/legal/electron':[root,'LICENSE'],'/legal/chromium':[root,'LICENSES.chromium.html'],'/legal/reader':[rd,'THIRD-PARTY-NOTICES-reader.md'],'/legal/dotnet':[rd,'LICENSE-dotnet.txt'],'/legal/dotnet-third-party':[rd,'THIRD-PARTY-NOTICES-dotnet.txt'],'/legal/capture':[rd,'LICENSE-AmongUsCapture.txt'],'/legal/assets':[root,'ASSET-NOTICES.md'],'/legal/players':[root,'LICENSE-AmongUsCapture-Players.txt'],'/legal/ffmpeg-source':[root,'third-party-sources','FFmpeg-Electron-45.2.3-sources.zip']};
         if(!files[route]){json(res,{error:'見つかりません。'},404);return;}
         const file=path.join(...files[route]);let size;try{size=(await stat(file)).size;}catch{json(res,{error:'ライセンス文書は配布フォルダーで確認してください。'},404);return;}
         const zip=route==='/legal/ffmpeg-source';res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");

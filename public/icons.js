@@ -16,6 +16,9 @@ export function spritePalette(player){
  return {body,shadow,visor,visorShadow:tone(visor,[.53,.62,.73]),deep:tone(shadow,.4)};
 }
 const templates=new Map(),tinted=new Map();
+// Colour regions in the pinned AmongUsCapture cyan templates. Keep bone, blood,
+// black outlines, highlights and transparency outside these regions unchanged.
+export const spriteSeeds=dead=>dead?[[55,252,218,0,45],[36,167,189,1,45],[12,54,47,4,16]]:[[56,255,221,0,45],[36,169,191,1,45],[197,225,236,2,35],[86,112,121,3,35]];
 function loadTemplate(dead){
  if(templates.has(dead))return templates.get(dead);
  const result=new Promise((resolve,reject)=>{
@@ -26,7 +29,7 @@ function loadTemplate(dead){
     const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(image,0,0,canvas.width,canvas.height);
     const pixels=context.getImageData(0,0,canvas.width,canvas.height),roles=new Uint8Array(canvas.width*canvas.height);
     // Only coloured regions are recoloured. Outlines, bone, highlights and alpha remain intact.
-    const seeds=dead?[[68,253,245,0,45],[36,167,189,1,45],[14,67,58,4,24]]:[[57,254,219,0,45],[36,169,190,1,45],[150,202,221,2,35],[79,125,162,3,35]];
+    const seeds=spriteSeeds(dead);
     for(let pixel=0;pixel<roles.length;pixel++){
      const index=pixel*4;if(!pixels.data[index+3])continue;let nearest=Infinity,role=0;
      for(let j=0;j<seeds.length;j++){const seed=seeds[j],distance=(pixels.data[index]-seed[0])**2+(pixels.data[index+1]-seed[1])**2+(pixels.data[index+2]-seed[2])**2;if(distance<seed[4]**2&&distance<nearest){nearest=distance;role=j+1;}}

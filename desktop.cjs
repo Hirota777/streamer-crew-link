@@ -65,7 +65,7 @@ function openOverlay(){
  secure(overlay);overlay.loadURL(address+'/overlay?preview=1');
 }
 
-const legalPaths=new Set(['/licenses','/legal/application','/legal/notices','/legal/electron','/legal/chromium','/legal/reader','/legal/dotnet','/legal/dotnet-third-party','/legal/capture','/legal/assets','/legal/ffmpeg-source']);
+const legalPaths=new Set(['/licenses','/legal/application','/legal/notices','/legal/electron','/legal/chromium','/legal/reader','/legal/dotnet','/legal/dotnet-third-party','/legal/capture','/legal/assets','/legal/players','/legal/ffmpeg-source']);
 function openLegal(url){
  const original=new URL(url).pathname.startsWith('/legal/');
  const legal=new BrowserWindow({width:800,height:720,title:'ライセンス — Streamer crew link',backgroundColor:original?'#ffffff':'#10151b',webPreferences:{partition:'crew-link-runtime',nodeIntegration:false,contextIsolation:true,sandbox:true}});

@@ -1,0 +1,300 @@
+{
+  "repository": "https://github.com/automuteus/amonguscapture",
+  "commit": "7038d375b9eacd97d8352bcc0f5a090fc3ab6a28",
+  "path": "AUCapture-WPF/Resources/Players",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2020 Denver Quane",
+  "originals": [
+    {
+      "name": "aublack.png",
+      "sourceSha256": "f6bb6ea17d353d22891c5674d7549222717792b4eb3e0fa17749adc54fada60f",
+      "sha256": "f6bb6ea17d353d22891c5674d7549222717792b4eb3e0fa17749adc54fada60f",
+      "transform": "none"
+    },
+    {
+      "name": "aublackdead.png",
+      "sourceSha256": "9ed5a7f9fff40d21f764b977f722bc5bc0ec7e6be29fe0f4603bcc5f69da2715",
+      "sha256": "0da333d70743d840772760b18926125d8e8cf3b08c77f365b1edcf5cd7e548da",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "aublue.png",
+      "sourceSha256": "43928b0fdd12129e62f5680770278cd2c9e8418500fff5443fd9cdc8d9c7901c",
+      "sha256": "43928b0fdd12129e62f5680770278cd2c9e8418500fff5443fd9cdc8d9c7901c",
+      "transform": "none"
+    },
+    {
+      "name": "aubluedead.png",
+      "sourceSha256": "9da885829a0f13dcc015bad18a4508bc578c381fd4e9b3cae232dd28c5d1bdb5",
+      "sha256": "885340af4e778a4e6d7f5c0ea98332ad9652c0179ab4543d7d4756c4becd6dd9",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "aubrown.png",
+      "sourceSha256": "7c32f48ad7445e22f65a72f64bb5bd039665783a146c30f353016721c73e7012",
+      "sha256": "7c32f48ad7445e22f65a72f64bb5bd039665783a146c30f353016721c73e7012",
+      "transform": "none"
+    },
+    {
+      "name": "aubrowndead.png",
+      "sourceSha256": "7b79c12ad26c9ccc463f1f161c9b7f0d592ce9879c166794e361d66ffa1d4b4c",
+      "sha256": "3b097672a7454f164a321dea0f67d2fc697985fc8af4bde34a961e69cec9fd99",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "aucyan.png",
+      "sourceSha256": "b57df5e9f040b43c760d8f7a86e27b322518c06c4e5641f2e8ef5cc3497f0f96",
+      "sha256": "b57df5e9f040b43c760d8f7a86e27b322518c06c4e5641f2e8ef5cc3497f0f96",
+      "transform": "none"
+    },
+    {
+      "name": "aucyandead.png",
+      "sourceSha256": "2f3e3c76a1cd1899b24e4ffffcabd43841db4316805d62da03438c817a86e7ab",
+      "sha256": "eab12f2d7310e27105ffab585b0512ee787959866a6a5034b06a00d50552c747",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "augreen.png",
+      "sourceSha256": "f6cdddce1d11274a2af939cdbdb61a2a922e45488ce15434c548873f87ed0848",
+      "sha256": "f6cdddce1d11274a2af939cdbdb61a2a922e45488ce15434c548873f87ed0848",
+      "transform": "none"
+    },
+    {
+      "name": "augreendead.png",
+      "sourceSha256": "65334f93f8da2a1c2037a4cbe8cb72213f9a308109be7238715f19d8002f5651",
+      "sha256": "33de0ce070c106c332720950d93a987b66a9f2a6c89fce8e3b78170b39f74f7b",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "aulime.png",
+      "sourceSha256": "9274e86164d2a0b51ac84fb04b4bede69f2aa70143b6138354f8321206ef02c5",
+      "sha256": "9274e86164d2a0b51ac84fb04b4bede69f2aa70143b6138354f8321206ef02c5",
+      "transform": "none"
+    },
+    {
+      "name": "aulimedead.png",
+      "sourceSha256": "7819ae1ce425736a919300f61194b6a1cb6391bd3dbf185d224447370953459e",
+      "sha256": "e6cb3b50d36ebb832285ce1c7afe53190337dd1628c6c69f2689e0d74d704d5c",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "auorange.png",
+      "sourceSha256": "ec003e63da73068e5d0d6062dc8b6eacbedb1d27f41b02777b78d929799908be",
+      "sha256": "ec003e63da73068e5d0d6062dc8b6eacbedb1d27f41b02777b78d929799908be",
+      "transform": "none"
+    },
+    {
+      "name": "auorangedead.png",
+      "sourceSha256": "e74a86c3bb8e5651b3fa84fc284db2b18dfc2058c3bb4d5d92d00dd72884608e",
+      "sha256": "7e1552b66a90001b2bdbeec6b2077c696649d3b816f99a3b36e8faa1bbf413e1",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "aupink.png",
+      "sourceSha256": "eb65aaf461915ad84dd8231d858c5df777949ccb7a85e9d05b25d67deb240a20",
+      "sha256": "eb65aaf461915ad84dd8231d858c5df777949ccb7a85e9d05b25d67deb240a20",
+      "transform": "none"
+    },
+    {
+      "name": "aupinkdead.png",
+      "sourceSha256": "5dba47e08cfa8c4c2976e6e9ddb1fde36450b75db3cb4add4c38979d0baae61a",
+      "sha256": "74c23f7b987e713781866e2e0958ab334da7d1fc00b016518f4dc40382d54fa4",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "aupurple.png",
+      "sourceSha256": "4b7265945f716a97928249873a4d265048911bd2ff874cd758a2e9bb4538da33",
+      "sha256": "4b7265945f716a97928249873a4d265048911bd2ff874cd758a2e9bb4538da33",
+      "transform": "none"
+    },
+    {
+      "name": "aupurpledead.png",
+      "sourceSha256": "7b596be7b6e13cf8941682334fee142052ee035feebe7a87d0b1252fedc6312f",
+      "sha256": "a2e0b82fd2ab961cbe6fa5b30b83466d020670a92592dccd4849384cb9f1f474",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "aured.png",
+      "sourceSha256": "82512b781e9522c4cef8559fea37fae9a603a8fb41875398b03919952e349bd0",
+      "sha256": "82512b781e9522c4cef8559fea37fae9a603a8fb41875398b03919952e349bd0",
+      "transform": "none"
+    },
+    {
+      "name": "aureddead.png",
+      "sourceSha256": "17d7083a07bce51fa9b78a448d1017ce80c8b10671de2063327b225dbd1c22b9",
+      "sha256": "ee23de64408ec30590f3424432e31f2e0ad6252b06cfd8e942211b0c63f4a1e9",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "auwhite.png",
+      "sourceSha256": "c1a74b2f157fd763e7ac12a097229823c4e894ee36d4ba24f4074c1fbf87b13a",
+      "sha256": "c1a74b2f157fd763e7ac12a097229823c4e894ee36d4ba24f4074c1fbf87b13a",
+      "transform": "none"
+    },
+    {
+      "name": "auwhitedead.png",
+      "sourceSha256": "1ba5deefc49068842ba87f7d07e68d13609283bebf6e069646047b4686dfd78f",
+      "sha256": "0554a01fb9969d3905e02cd2540e97a738b0c669e4828d82d2aa44f81b33e9d2",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    },
+    {
+      "name": "auyellow.png",
+      "sourceSha256": "0fc5d7608a3217ddde7739c76e125db5c04fd8fd0af7cf56ca58b890417dbe0c",
+      "sha256": "0fc5d7608a3217ddde7739c76e125db5c04fd8fd0af7cf56ca58b890417dbe0c",
+      "transform": "none"
+    },
+    {
+      "name": "auyellowdead.png",
+      "sourceSha256": "f0c9326250a46c316c044c4188b4d3d7f3a8c9e251f3f6df5cd51ddd858e3bee",
+      "sha256": "011a2f470f8fdbd67ff29e073941b9f9552c7d1dc8541f89d1b79def0ce0fe0c",
+      "transform": "near-transparent background (alpha <= 3) cleared to avoid white-outline rectangles"
+    }
+  ],
+  "derived": [
+    {
+      "name": "aumaroon.png",
+      "template": "aucyan.png",
+      "palette": {
+        "body": "#6b2b3d",
+        "shadow": "#410F1A",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#1a060a"
+      },
+      "sha256": "c950dc856aefa3690b3e2349902f7cf45f938941dbf90fab0e4359b053515108"
+    },
+    {
+      "name": "aumaroondead.png",
+      "template": "aucyandead.png",
+      "palette": {
+        "body": "#6b2b3d",
+        "shadow": "#410F1A",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#1a060a"
+      },
+      "sha256": "414458b769e66b555f1baa6366389917dfbc9555b36ec2ebe155f1f458a4380d"
+    },
+    {
+      "name": "aurose.png",
+      "template": "aucyan.png",
+      "palette": {
+        "body": "#ecc0d3",
+        "shadow": "#DE92B3",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#593a48"
+      },
+      "sha256": "aa5588f026af80b1a1edc2958dd848a8ef2111d4d65aed39470cb5d0257bf710"
+    },
+    {
+      "name": "aurosedead.png",
+      "template": "aucyandead.png",
+      "palette": {
+        "body": "#ecc0d3",
+        "shadow": "#DE92B3",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#593a48"
+      },
+      "sha256": "64d91bcc9e28bc6c2a1e4fc8b03213975c16dabf19bcd523c1fcfd5e29c74f26"
+    },
+    {
+      "name": "aubanana.png",
+      "template": "aucyan.png",
+      "palette": {
+        "body": "#fffebe",
+        "shadow": "#D2BC89",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#544b37"
+      },
+      "sha256": "7dae6e7d76412cdb2d6ab010420e2c672dd3a269e768ab5558c2aa44a859ee9a"
+    },
+    {
+      "name": "aubananadead.png",
+      "template": "aucyandead.png",
+      "palette": {
+        "body": "#fffebe",
+        "shadow": "#D2BC89",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#544b37"
+      },
+      "sha256": "e6489c2251372641124b74dfa5c2acfc9106a0a6b453ced570a932307aec65db"
+    },
+    {
+      "name": "augray.png",
+      "template": "aucyan.png",
+      "palette": {
+        "body": "#8397a7",
+        "shadow": "#465664",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#1c2228"
+      },
+      "sha256": "793e13ce99a99aac06cb44091eef46b9d35cf502b4712a0411fa7dff7dd5248d"
+    },
+    {
+      "name": "augraydead.png",
+      "template": "aucyandead.png",
+      "palette": {
+        "body": "#8397a7",
+        "shadow": "#465664",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#1c2228"
+      },
+      "sha256": "121ca7b812fad73f8a2dd10c996909940363f3e8ac79f770ebabac9c1233b9cf"
+    },
+    {
+      "name": "autan.png",
+      "template": "aucyan.png",
+      "palette": {
+        "body": "#9f9989",
+        "shadow": "#51413E",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#201a19"
+      },
+      "sha256": "0759627bcc997e4730b50191cc9db1356cbc5118bd078ac698596f1e6adbfad7"
+    },
+    {
+      "name": "autandead.png",
+      "template": "aucyandead.png",
+      "palette": {
+        "body": "#9f9989",
+        "shadow": "#51413E",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#201a19"
+      },
+      "sha256": "354c434bac4d53820b385714f8eb5be5a42088c42225c2b82684ddc47e02a381"
+    },
+    {
+      "name": "aucoral.png",
+      "template": "aucyan.png",
+      "palette": {
+        "body": "#ec7578",
+        "shadow": "#B44362",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#481b27"
+      },
+      "sha256": "72504474a08ee0a3899fa6371a552962d68807d3bd3cbfb6cbaf8da3e4babad3"
+    },
+    {
+      "name": "aucoraldead.png",
+      "template": "aucyandead.png",
+      "palette": {
+        "body": "#ec7578",
+        "shadow": "#B44362",
+        "visor": "#95CADC",
+        "visorShadow": "#4f7da1",
+        "deep": "#481b27"
+      },
+      "sha256": "74835cc91c83cbcf118964dfdd2433e75eb6ce11c88dafb460c3bfbdbb34cbc5"
+    }
+  ],
+  "appIcon": "Cyan source on a new dark rounded background"
+}
