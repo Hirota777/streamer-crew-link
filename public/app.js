@@ -1,15 +1,17 @@
 import {cleanStreamkitUrl} from './streamkit.js';
 import {renderCrew} from './render.js';
 import {appendCharacter} from './icons.js';
+import {setupSettingsTransfer} from './settings-transfer.js';
 import {setupPresetManager} from './preset-manager.js';
 import {setupUpdateUI} from './updates-ui.js';
 const $=selector=>document.querySelector(selector);
+let settingsTransferBusy=false;
 let state,token,streamkitDraft='',draft=[],dirty=false,settingsDirty=false,saving=false,creatingPreset=false,memberRevision=0,displayRevision=0,lastKey='',activeView='preview',previewKey='',previewRequest=0,previewTimer,previewMode='';
 let streamkitNameDraft='',streamkitFormId='',streamkitFormRevision=0,streamkitDirty=false,streamkitSaving=false,streamkitEditorRevision=0,streamkitBaseActive='';
 let memberFilter='all',memberDragKey='';
 let memberBase=[],memberConflict=false,memberSaving=false,memberSaveTimer=null,memberSaveError='',memberComposing=false;
 const pendingDrafts=new Map();
-setupUpdateUI({canInstall:()=>!!state&&!dirty&&!memberSaving&&!settingsDirty&&!saving&&!streamkitSaving&&!streamkitDirty&&!creatingPreset&&!pendingDrafts.size});
+setupUpdateUI({notify:message=>toast(message),canInstall:()=>!!state&&!settingsTransferBusy&&!dirty&&!memberSaving&&!settingsDirty&&!saving&&!streamkitSaving&&!streamkitDirty&&!creatingPreset&&!pendingDrafts.size});
 const memberKey=s=>'members:'+s.mode+':'+s.preset.id;
 const displayKey=s=>'display:'+s.displayPreset.id;
 const views=['preview','mapping','connections'];
@@ -261,6 +263,7 @@ $('#clear-data').onclick=async()=>{
  clearTimeout(memberSaveTimer);memberSaveTimer=null;
  try{const result=await post('/api/data/clear',{});pendingDrafts.clear();dirty=false;memberSaveError='';memberConflict=false;memberComposing=false;memberRevision++;settingsDirty=false;streamkitDirty=false;streamkitEditorRevision++;lastKey='';receive(result);toast('保存データを削除しました。');}catch(error){toast(error.message);}finally{scheduleMemberSave();}
 };
+setupSettingsTransfer({canChange:()=>{if(!state||settingsTransferBusy)return false;if(dirty||memberSaving||settingsDirty||streamkitDirty||streamkitSaving||saving||creatingPreset||pendingDrafts.size){toast('未保存の変更を保存するか、元に戻してから操作してください。');return false;}return true;},setBusy:value=>{settingsTransferBusy=value;$('.shell').inert=value;},post,receive,toast,beforeImport:()=>{clearTimeout(memberSaveTimer);memberSaveTimer=null;pendingDrafts.clear();dirty=false;memberSaveError='';memberConflict=false;memberComposing=false;memberRevision++;settingsDirty=false;streamkitDirty=false;streamkitEditorRevision++;lastKey='';}});
 setupPresetManager({getState:()=>state,canChange:()=>{if(!state){toast('アプリを読み込み中です。');return false;}if(dirty||memberSaving){toast('対応づけの自動保存が完了してから操作してください。');return false;}if(settingsDirty||streamkitDirty||streamkitSaving||saving||creatingPreset||pendingDrafts.size){toast('未保存の変更を保存するか、元に戻してから操作してください。');return false;}return true;},post,receive,toast});
-window.addEventListener('beforeunload',event=>{if(dirty||memberSaving||settingsDirty||streamkitDirty||streamkitSaving||pendingDrafts.size){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(settingsTransferBusy||dirty||memberSaving||settingsDirty||streamkitDirty||streamkitSaving||pendingDrafts.size){event.preventDefault();event.returnValue='';}});
 try{const bootstrap=await(await fetch('/api/bootstrap')).json();token=bootstrap.token;receive(bootstrap);const stream=new EventSource('/api/events');stream.onmessage=event=>receive(JSON.parse(event.data));stream.onerror=()=>{$('#notice').hidden=false;$('#notice').textContent='アプリとの接続が切れました。起動状態を確認してください。';};}catch{toast('アプリに接続できません。起動し直してください。');}

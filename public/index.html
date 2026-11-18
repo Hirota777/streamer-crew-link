@@ -5,7 +5,7 @@
 <div class="shell">
   <header class="app-header">
     <a class="brand" href="#preview"><span class="brand-mark"><span data-character="#38FEDB" aria-hidden="true"></span></span><span>Streamer crew link<small>Among Us 配信補助</small></span></a>
-    <div class="header-actions"><span class="version">v1.1.0</span><button id="obs-toggle" class="primary small" disabled>OBS連携を開始</button><button id="copy-game-url" class="primary small">表示URLをコピー</button><button id="demo" class="secondary small">デモを試す</button></div>
+    <div class="header-actions"><span class="version">v1.1.2</span><button id="obs-toggle" class="primary small" disabled>OBS連携を開始</button><button id="copy-game-url" class="primary small">表示URLをコピー</button><button id="demo" class="secondary small">デモを試す</button></div>
   </header>
     <section class="status-grid" aria-label="現在の接続状態">
       <article><div class="status-heading"><span>ゲーム</span><span id="game-count" class="status-count">0人</span></div><div class="status-value"><i id="game-dot"></i><strong id="game-status">起動を待っています</strong></div></article>
@@ -64,6 +64,7 @@
         <section class="panel connection-card"><div class="panel-heading"><span class="connection-symbol game-symbol" aria-hidden="true"><span data-character="#38FEDB" aria-hidden="true"></span></span><div><h1>ゲームを起動</h1><p>起動すると自動で読み取ります</p></div></div><div class="connection-body"><p>いつものAmong Usを起動して、ロビーに参加してください。</p><div class="supported-mods"><span>通常版</span><span>Nebula</span><span>SNR</span></div><p class="reassurance">ゲームフォルダーへの追加導入は不要です。</p><details><summary id="supported-versions">対応バージョンについて</summary><p>SNRの追加色は3.3.0.0で確認済みです。Among Us本体が対応表と一致する場合に読み取ります。未対応の場合は、上の接続状態に案内します。NebulaとSNRの同時導入は対象外です。</p></details></div></section>
 
       </div>
+      <details id="settings-transfer" class="panel storage-settings"><summary>設定の書き出し・読み込み</summary><p>対応づけ・表示先URL・見た目プリセットをまとめて引き継ぎます。書き出すJSONにはユーザーIDとURLが含まれます。共有せず保管してください。</p><div class="actions"><button id="settings-export" class="secondary small">設定一式を書き出す</button><button id="settings-import" class="secondary small">設定ファイルを読み込む</button><input id="settings-import-file" type="file" accept=".json,application/json" hidden></div></details>
       <details id="storage-settings" class="panel storage-settings"><summary>保存データの削除</summary><p>このPCの対応づけ・表示先の登録・見た目プリセットをすべて削除します。</p><button type="button" id="clear-data" class="danger-link">保存したデータをすべて削除</button></details>
     </section>
     <footer class="page-footer"><span>© 2026 Hirota777 · 非公式ツール</span><nav class="legal-links" aria-label="規約と問い合わせ"><a href="/licenses" target="_blank" rel="noopener noreferrer">ライセンス</a><a href="https://github.com/Hirota777/streamer-crew-link/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">プライバシー</a><a href="https://github.com/Hirota777/streamer-crew-link/blob/main/TERMS.md" target="_blank" rel="noopener noreferrer">利用規約</a><a href="https://github.com/Hirota777/streamer-crew-link/issues" target="_blank" rel="noopener noreferrer">問い合わせ</a></nav></footer>
@@ -71,6 +72,7 @@
 
 </div>
 <dialog id="preset-manager" aria-labelledby="manager-title"><div class="dialog-heading"><h1 id="manager-title">プリセットの管理</h1><button id="manager-close" class="secondary small">閉じる</button></div><label class="field-label">名前<input id="manager-name" maxlength="80"></label><div class="actions"><button id="preset-rename" class="primary small">名前を変更</button><button id="preset-duplicate" class="secondary small">別名で複製</button><button id="preset-delete" class="danger-link">このプリセットを削除</button></div><p class="footnote">見た目設定だけを書き出します。対応づけ・表示用URL・認証データは含みません。</p><div class="actions"><button id="preset-export" class="secondary small">ファイルへ書き出し</button><label class="button secondary small">ファイルを読み込む<input id="preset-import" type="file" accept=".json,application/json" hidden></label></div><div id="import-preview" hidden><p id="import-summary"></p><button id="preset-import-confirm" class="primary small">新しいプリセットとして追加</button></div></dialog>
+<dialog id="settings-import-dialog" aria-labelledby="settings-import-title"><h2 id="settings-import-title">設定一式の読み込み</h2><p id="settings-import-summary"></p><p>現在の保存設定を置き換えます。OBS連携は停止します。現在の設定を残す場合は、先に書き出してください。</p><div class="actions"><button id="settings-import-apply" class="primary small">現在の設定に置き換える</button><button id="settings-import-cancel" class="secondary small">キャンセル</button></div></dialog>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 <script type="module" src="/app.js"></script>
 </body></html>

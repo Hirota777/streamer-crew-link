@@ -42,7 +42,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
   function startDemo(){stopDemo();mode='demo';demoMembers=demoGame.players.map((p,i)=>({id:'demo-user-'+i,name:['Shiro','Kuro','Momo','Sora','Ao','Murasaki','Kiiro','Midori','Aka','Lime','Rose'][i],avatar:null,speaking:false}));demoTimer=setInterval(()=>{demoMembers.forEach((m,i)=>m.speaking=i===Math.floor(Date.now()/1100)%11);broadcast();},400);}
   const timer=setInterval(broadcast,2000);timer.unref();
   function equal(a,b){return typeof a==='string'&&Buffer.byteLength(a)===Buffer.byteLength(b)&&timingSafeEqual(Buffer.from(a),Buffer.from(b));}
-  async function body(req){const chunks=[];let bytes=0;for await(const c of req){bytes+=c.length;if(bytes>128*1024)throw Error('送信データが大きすぎます。');chunks.push(c);}let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks,bytes));}catch{throw Error('送信データの文字コードが不正です。');}return JSON.parse(text||'{}');}
+  async function body(req,maxBytes=128*1024){const chunks=[];let bytes=0;for await(const c of req){bytes+=c.length;if(bytes>maxBytes)throw Error('送信データが大きすぎます。');chunks.push(c);}let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks,bytes));}catch{throw Error('送信データの文字コードが不正です。');}return JSON.parse(text||'{}');}
   function json(res,value,status=200){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
   const server=http.createServer({requestTimeout:15000,headersTimeout:10000,maxHeaderSize:16384},async(req,res)=>{
     try{
@@ -58,8 +58,10 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
       if(req.method==='POST'){
         if(!equal(req.headers['x-app-token'],csrf)){json(res,{error:'管理画面を再読み込みしてください。'},403);return;}
         if(req.headers.origin&&!['http://127.0.0.1:'+port,'http://localhost:'+port].includes(req.headers.origin)){json(res,{error:'接続元が不正です。'},403);return;}
-        const b=await body(req);
+        const b=await body(req,route==='/api/settings/import-preview'||route==='/api/settings/import'?1024*1024:128*1024);
         switch(route){
+          case '/api/settings/import-preview':json(res,store.previewSettingsFile(b.value));return;
+          case '/api/settings/import':await store.importSettings(b.value,b.baseFingerprint,{afterWrite:()=>{stopDemo();obsExport.setEnabled(false,snapshot());}});break;
           case '/api/preview':{
             const current=snapshot(),settings=cleanSettings(b.settings),players=b.sampleCount&&mode==='demo'?current.game.displayPlayers.slice(0,[3,6,11].includes(b.sampleCount)?b.sampleCount:11):current.game.displayPlayers;
             const links=mode==='demo'?players.map((p,i)=>({gameKey:p.key,discordId:String(800000000000000000n+BigInt(i)),label:p.name,visible:true})):cleanLinks(b.links??[]);
@@ -106,6 +108,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
       }
       if(route==='/api/bootstrap'){json(res,{token:csrf,...snapshot()});return;}
       if(route==='/api/presets/export'){json(res,store.exportPreset(url.searchParams.get('kind'),url.searchParams.get('id')));return;}
+      if(route==='/api/settings/export'){json(res,store.exportSettings());return;}
       if(route==='/api/state'){json(res,snapshot());return;}
       if(route==='/api/events'||route==='/api/live-events'){
         const target=route==='/api/live-events'?liveStreams:streams;
@@ -124,12 +127,12 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
       if(/^\/icons\/au(?:red|blue|green|pink|orange|yellow|black|white|purple|brown|cyan|lime|maroon|rose|banana|gray|tan|coral)(?:dead)?\.png$/.test(route)){
         res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'});res.end(await readFile(path.join(here,'public',route.slice(1))));return;
       }
-      const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/preset-manager.js':'preset-manager.js','/streamkit.js':'streamkit.js','/updates-ui.js':'updates-ui.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css','/licenses':'licenses.html'};
+      const routes={'/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/preset-manager.js':'preset-manager.js','/settings-transfer.js':'settings-transfer.js','/streamkit.js':'streamkit.js','/updates-ui.js':'updates-ui.js','/render.js':'render.js','/icons.js':'icons.js','/style.css':'style.css','/licenses':'licenses.html'};
       if(!routes[route]){json(res,{error:'見つかりません。'},404);return;}
       const types={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
       res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.discordapp.com; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
       res.writeHead(200,{'Content-Type':types[path.extname(routes[route])]+'; charset=utf-8','Cache-Control':'no-cache'});res.end(await readFile(path.join(here,'public',routes[route])));
-    }catch(e){json(res,{error:e.message||'処理に失敗しました。',...(e.code==='MEMBER_CONFLICT'?{code:e.code}:{})},e.code==='MEMBER_CONFLICT'?409:400);}
+    }catch(e){json(res,{error:e.message||'処理に失敗しました。',...(['MEMBER_CONFLICT','SETTINGS_IMPORT_CONFLICT'].includes(e.code)?{code:e.code}:{})},['MEMBER_CONFLICT','SETTINGS_IMPORT_CONFLICT'].includes(e.code)?409:400);}
   });
   function shutdown(){obsExport.close();clearInterval(timer);stopDemo();discord.shutdown();for(const s of [...streams,...liveStreams])s.end();streams.clear();liveStreams.clear();server.close();}
   server.on('close',()=>{obsExport.close();clearInterval(timer);stopDemo();discord.shutdown();for(const s of [...streams,...liveStreams])s.end();streams.clear();liveStreams.clear();});

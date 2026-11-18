@@ -1,0 +1,11 @@
+export function setupSettingsTransfer({canChange,setBusy,post,receive,toast,beforeImport}){
+ const $=s=>document.querySelector(s);let pending=null;
+ const download=value=>{const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='Streamer-crew-link-settings.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+ $('#settings-export').onclick=async()=>{if(!canChange())return;setBusy(true);try{if(window.crewLink?.exportSettings){if(!await window.crewLink.exportSettings())return;}else{const response=await fetch('/api/settings/export');const value=await response.json();if(!response.ok)throw Error(value.error);download(value);}toast('保存済みの設定一式を書き出しました。');}catch(e){toast(e.message||'設定を書き出せませんでした。');}finally{setBusy(false);}};
+ async function preview(read){setBusy(true);pending=null;try{const value=await read();if(!value)return;const summary=await post('/api/settings/import-preview',{value});pending={value,baseFingerprint:summary.baseFingerprint};$('#settings-import-summary').textContent=`対応づけ ${summary.members}件・表示先 ${summary.targets}件・見た目プリセット ${summary.presets}件（選択：${summary.activeDisplay}）`;}catch(e){toast(e.message||'設定を読み込めませんでした。');}finally{setBusy(false);}if(pending)$('#settings-import-dialog').showModal();}
+ $('#settings-import').onclick=()=>{if(!canChange())return;if(window.crewLink?.readSettings)preview(()=>window.crewLink.readSettings());else{$('#settings-import-file').value='';$('#settings-import-file').click();}};
+ $('#settings-import-file').onchange=()=>{if(!canChange())return;const file=$('#settings-import-file').files[0];if(!file)return;preview(async()=>{if(file.size>1024*1024)throw Error('1 MB以内の設定JSONファイルを選んでください。');return JSON.parse((await file.text()).replace(/^\uFEFF/,''));});};
+ $('#settings-import-cancel').onclick=()=>$('#settings-import-dialog').close();
+ $('#settings-import-dialog').addEventListener('close',()=>{pending=null;});
+ $('#settings-import-apply').onclick=async()=>{if(!pending||!canChange())return;const payload=pending;$('#settings-import-dialog').close();setBusy(true);try{const state=await post('/api/settings/import',payload);beforeImport();receive(state);toast('設定一式を読み込みました。OBS連携は停止中です。表示を確認してから再開してください。');}catch(e){toast(e.message||'設定を読み込めませんでした。');}finally{setBusy(false);}};
+}

@@ -1,4 +1,4 @@
-export function setupUpdateUI({canInstall}){
+export function setupUpdateUI({canInstall,notify=()=>{}}){
  if(!window.crewLink?.update)return;
  window.crewLinkCanInstallUpdate=canInstall;
  const panel=document.createElement('section');panel.className='update-panel';panel.hidden=true;panel.setAttribute('aria-label','アプリの更新');
@@ -6,9 +6,10 @@ export function setupUpdateUI({canInstall}){
  document.querySelector('.app-header').after(panel);
  const box=document.createElement('details');box.className='panel storage-settings update-settings';box.innerHTML='<summary>アプリの更新</summary><label class="check"><input id="update-auto" type="checkbox" checked> 起動時に更新を確認する</label><button id="update-check" class="secondary small">更新を確認</button><p class="footnote">新しい正式リリースがある場合にお知らせします。更新のインストール前にアプリを終了するため、OBS表示は一時停止します。</p>';
  document.querySelector('#connections').prepend(box);
- const $=id=>document.getElementById(id);let revision=-1,actionBusy=false;
+ const skipped=document.createElement('p');skipped.id='update-skipped';skipped.className='footnote';skipped.hidden=true;box.append(skipped);
+ const $=id=>document.getElementById(id);let revision=-1,actionBusy=false,latestState=null;
  function receive(state){
-  if(!state||state.revision<revision)return;revision=state.revision;
+  if(!state||state.revision<revision)return;revision=state.revision;latestState=state;
   const {phase,release,message,installed}=state,available=!!release,download=phase==='downloading',ready=phase==='ready';
   panel.hidden=!available&&!message&&!state.lastResult;panel.dataset.phase=phase;
   $('update-title').textContent=available?'新しいバージョンがあります':'アプリの更新';
@@ -20,12 +21,15 @@ export function setupUpdateUI({canInstall}){
   $('update-download').hidden=!available||!installed||download||ready;
   $('update-install').hidden=!ready;$('update-release').hidden=!available;
   $('update-later').hidden=download;$('update-later').textContent=available?'あとで':'閉じる';$('update-skip').hidden=!available||download||ready;$('update-cancel').hidden=!download;
+  $('update-later').title='今回は閉じます。起動時の自動確認が有効なら次回また通知します。';$('update-skip').title='この版の自動通知を止めます。手動の更新確認では表示します。';
+  skipped.hidden=!state.skippedVersion;skipped.textContent=state.skippedVersion?`v${state.skippedVersion}の自動通知を停止中（手動の更新確認では表示）`:'';
  }
  async function act(action,value){
   const parallel=['cancel','preference','release'].includes(action);if(actionBusy&&!parallel)return;
   if(action==='install'&&!canInstall()){$('update-message').textContent='未保存の編集があります。編集したプリセットを保存するか、変更を元に戻してから更新してください。';return;}
   if(!parallel)actionBusy=true;
-  try{receive(await window.crewLink.update(action,value));}catch{panel.hidden=false;$('update-message').textContent='更新操作に失敗しました。時間をおいてお試しください。';}
+  const selected=latestState?.release;
+  try{const result=await window.crewLink.update(action,value);receive(result);if(action==='later'&&selected)notify(result.autoCheck?'今回は閉じました。次回起動時に更新をもう一度お知らせします。':'今回は閉じました。手動の更新確認で再び表示できます。');if(action==='skip'&&selected)notify(`v${selected.version}の自動通知を停止しました。手動の更新確認では表示します。`);}catch{panel.hidden=false;$('update-message').textContent='更新操作に失敗しました。時間をおいてお試しください。';}
   finally{if(!parallel)actionBusy=false;}
  }
  for(const [id,action]of [['update-check','check'],['update-download','download'],['update-install','install'],['update-release','release'],['update-later','later'],['update-skip','skip'],['update-cancel','cancel']])$(id).onclick=()=>act(action);
