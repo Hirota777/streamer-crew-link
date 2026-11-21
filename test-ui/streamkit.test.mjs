@@ -49,7 +49,7 @@ test('Discord IDを登録・保存してOBS連携を開始し、解除保存で�
  await page.getByRole('tab',{name:'メンバー',exact:true}).click();
  const id=page.getByRole('textbox',{name:'テスト参加者のDiscord参加者',exact:true});await id.fill('not-an-id');await id.press('Tab');assert.equal(await id.inputValue(),'');
  await id.fill('345678901234567890');await id.press('Tab');await page.waitForFunction(()=>document.querySelector('#member-save-state').textContent==='自動保存済み');assert.equal(app.store.current.links[0].discordId,'345678901234567890');
- await page.getByRole('tab',{name:'初期設定',exact:true}).click();await page.locator('#obs-toggle').click();await page.waitForFunction(()=>document.querySelector('#obs-toggle').textContent==='OBS連携を停止');assert.equal(app.obsExport.view().mapped,1);
+ await page.getByRole('tab',{name:'初期設定',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#obs-toggle').textContent==='連携を一時停止');assert.equal(await page.locator('.header-actions #obs-toggle').count(),0);assert.equal(await page.locator('#autoStartObs').isChecked(),true);for(let attempt=0;attempt<120&&app.obsExport.view().mapped!==1;attempt++)await new Promise(r=>setTimeout(r,25));assert.equal(app.obsExport.view().mapped,1);
  await page.screenshot({path:path.resolve('../../../outputs/Streamkit-0.2.0-連携設定.png')});
  await page.getByRole('tab',{name:'メンバー',exact:true}).click();await page.getByRole('button',{name:'テスト参加者の対応づけを解除',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#member-save-state').textContent==='自動保存済み');
  for(let attempt=0;attempt<120&&app.obsExport.view().mapped!==0;attempt++)await new Promise(r=>setTimeout(r,25));assert.equal(app.obsExport.view().mapped,0);assert.equal(app.store.current.links.length,0);

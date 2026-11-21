@@ -24,7 +24,14 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
   const instanceId=randomBytes(16).toString('hex');let stateVersion=0;
   let game=null,lastGame=null,mode='live',demoTimer=null,connecting=false,reader={status:'waiting',message:'Among Usの起動を待っています'};
   const demoGame={version:'表示確認用',modVersion:'デモ',scene:'Lobby',lifeTracking:true,players:Array.from({length:11},(_,i)=>({key:'demo-game-'+i,name:['しろ','くろ','もも','そら','あお','むらさき','きいろ','みどり','あか','ライム','ローズ'][i],color:['#d6e0f0','#353846','#f3a6c5','#38e7df','#253fcd','#7739c4','#fff3a1','#147a45','#ca243e','#6ae33d','#d448aa'][i],colorId:[7,6,3,10,1,8,5,2,0,11,13][i],lifeState:i===2?'dead':i===5?'exiled':'alive',stable:false}))};
-  let demoMembers=[];
+  let demoMembers=[],obsPaused=false;
+  // Start only after committed setup changes, never on a heartbeat or demo frame.
+  function syncObs(){
+    const ready=store.current.settings.displaySource==='streamkit'&&!!store.current.streamkitUrl;
+    if(!ready){if(obsExport.enabled)obsExport.setEnabled(false,snapshot());return;}
+    if(mode!=='live'||obsPaused||!store.data.preferences.autoStartObs||obsExport.enabled)return;
+    try{obsExport.setEnabled(true,snapshot());}catch{obsExport.info.error='OBS連携を自動で開始できません。保存先を確認して再開してください。';}
+  }
   function snapshot(liveOnly=false){
     const isDemo=mode==='demo'&&!liveOnly, online=isDemo||(lastGame!==null&&now()-lastGame<5000);
     const g=isDemo?demoGame:(online?game:null),members=isDemo?demoMembers:discord.members;
@@ -61,25 +68,25 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
         const b=await body(req,route==='/api/settings/import-preview'||route==='/api/settings/import'?1024*1024:128*1024);
         switch(route){
           case '/api/settings/import-preview':json(res,store.previewSettingsFile(b.value));return;
-          case '/api/settings/import':await store.importSettings(b.value,b.baseFingerprint,{afterWrite:()=>{stopDemo();obsExport.setEnabled(false,snapshot());}});break;
+          case '/api/settings/import':await store.importSettings(b.value,b.baseFingerprint,{afterWrite:()=>{stopDemo();obsPaused=true;obsExport.setEnabled(false,snapshot());}});break;
           case '/api/preview':{
-            const current=snapshot(),settings=cleanSettings(b.settings),players=b.sampleCount&&mode==='demo'?current.game.displayPlayers.slice(0,[3,6,11].includes(b.sampleCount)?b.sampleCount:11):current.game.displayPlayers;
+            const current=snapshot(),settings=cleanSettings(b.settings),players=current.game.displayPlayers;
             const links=mode==='demo'?players.map((p,i)=>({gameKey:p.key,discordId:String(800000000000000000n+BigInt(i)),label:p.name,visible:true})):cleanLinks(b.links??[]);
             const previewState={preset:{settings,links},game:{displayPlayers:players}};
             const style=createObsStyle(previewState,{spriteEncoder});
             const rows=links.filter(l=>/^[0-9]{15,22}$/.test(l.discordId)&&players.some(p=>p.key===l.gameKey)).map(l=>({...l,player:players.find(p=>p.key===l.gameKey)??null}));
             json(res,{...style,rows});return;
           }
-          case '/api/streamkit/save':{const savedId=await store.saveStreamkit(b);broadcast();json(res,{...snapshot(),streamkitSavedId:savedId});return;}
+          case '/api/streamkit/save':{const savedId=await store.saveStreamkit(b);syncObs();broadcast();json(res,{...snapshot(),streamkitSavedId:savedId});return;}
           case '/api/streamkit/select':await store.selectStreamkit(b.id);break;
           case '/api/streamkit/delete':await store.removeStreamkit(b.id,b.revision);break;
           case '/api/presets/rename':await store.rename(b.id,b.name,b.kind);break;
           case '/api/presets/delete':await store.remove(b.id,b.kind);break;
           case '/api/presets/import-preview':json(res,store.cleanImport(b.value));return;
           case '/api/presets/import':await store.importPreset(b.value);break;
-          case '/api/preferences':await store.preferences(b);break;
+          case '/api/preferences':await store.preferences(b);obsPaused=false;if(!b.autoStartObs)obsExport.setEnabled(false,snapshot());syncObs();break;
           case '/api/save':await store.save(b,{settingsOnly:mode==='demo'});break;
-          case '/api/obs/export':if(mode==='demo'&&b.enabled)throw Error('デモを終了してからOBS連携を開始してください。');obsExport.setEnabled(b.enabled,snapshot());break;
+          case '/api/obs/export':if(mode==='demo'&&b.enabled)throw Error('デモを終了してからOBS連携を開始してください。');obsExport.setEnabled(b.enabled,snapshot());obsPaused=!b.enabled;break;
           case '/api/display-presets/create':await store.create(b.name,b.displayPresetId,'display',b);break;
           case '/api/display-presets/select':await store.select(b.id,'display');break;
           case '/api/demo':b.enabled?startDemo():stopDemo();break;
@@ -91,9 +98,10 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
           case '/api/discord/reconnect':if(!rpcEnabled)throw Error('この検証版ではRPC連携を使用しません。');stopDemo();await discord.reconnect();break;
           case '/api/discord/disconnect':discord.disconnect();break;
           case '/api/discord/forget':await discord.forget();break;
-          case '/api/data/clear':stopDemo();await discord.forget();await store.reset();await clearLegacyData();break;
+          case '/api/data/clear':stopDemo();await discord.forget();await store.reset();obsPaused=false;await clearLegacyData();break;
           default:json(res,{error:'見つかりません。'},404);return;
         }
+        if(['/api/streamkit/select','/api/streamkit/delete','/api/save','/api/display-presets/create','/api/display-presets/select','/api/presets/delete','/api/presets/import','/api/demo','/api/data/clear'].includes(route))syncObs();
         broadcast();json(res,snapshot());return;
       }
       if(req.method!=='GET'){json(res,{error:'利用できない操作です。'},405);return;}
@@ -136,7 +144,7 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
   });
   function shutdown(){obsExport.close();clearInterval(timer);stopDemo();discord.shutdown();for(const s of [...streams,...liveStreams])s.end();streams.clear();liveStreams.clear();server.close();}
   server.on('close',()=>{obsExport.close();clearInterval(timer);stopDemo();discord.shutdown();for(const s of [...streams,...liveStreams])s.end();streams.clear();liveStreams.clear();});
-  if(store.data.preferences.autoStartObs&&store.current.settings.displaySource==='streamkit'&&store.current.streamkitUrl)try{obsExport.setEnabled(true,snapshot());}catch{obsExport.info.error='OBS連携を自動で開始できません。';}
+  syncObs();
   return {server,store,snapshot,shutdown,obsExport,startDiscord:()=>!rpcEnabled||store.current.settings.displaySource==='game'?Promise.resolve():discord.start(),ingestGame(body){game=cleanGame(body);lastGame=now();presentation.update(game);broadcast();},setReaderStatus(status,message){reader={status,message};presentation.status(status);if(status!=='connected'){game=null;lastGame=null;}broadcast();}};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){

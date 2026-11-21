@@ -31,3 +31,17 @@ test('Discord IPCの分割受信と複数フレームを処理',()=>{
 test('発言開始・停止と切断が状態に反映される',()=>{
  const d=new Discord();d.channel={id:'voice'};d.members=[{id:'user',speaking:false}];d.dispatch({evt:'SPEAKING_START',data:{user_id:'user'}});assert.equal(d.members[0].speaking,true);d.dispatch({evt:'SPEAKING_STOP',data:{user_id:'user'}});assert.equal(d.members[0].speaking,false);d.close();assert.deepEqual(d.members,[]);
 });
+
+
+test('表示方式の初期値はStreamkitで、保存済みのクルーのみ設定と明示的な切替は保持する',async()=>{
+ const dir=await mkdtemp(path.join(os.tmpdir(),'crew-default-mode-'));
+ try{
+  const s=new Store(dir,{allowPlaintext:true});await s.load();assert.equal(s.current.settings.displaySource,'streamkit');
+  await s.save({settings:{size:95}});assert.equal(s.current.settings.displaySource,'streamkit');
+  await s.save({settings:{displaySource:'game',size:95}});
+  const loaded=new Store(dir,{allowPlaintext:true});await loaded.load();assert.equal(loaded.current.settings.displaySource,'game');
+  await loaded.create('クルー用');assert.equal(loaded.current.settings.displaySource,'game');
+  await loaded.save({settings:{displaySource:'streamkit'}});
+  const next=new Store(dir,{allowPlaintext:true});await next.load();assert.equal(next.current.settings.displaySource,'streamkit');
+ }finally{await rm(dir,{recursive:true,force:true});}
+});

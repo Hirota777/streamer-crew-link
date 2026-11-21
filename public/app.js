@@ -38,6 +38,7 @@ $('.brand').onclick=event=>{event.preventDefault();openView('preview');};
 for(const button of document.querySelectorAll('[data-open-view]'))button.onclick=()=>openView(button.dataset.openView);
 window.addEventListener('hashchange',()=>openView(location.hash.slice(1).replace(/^view-/,'')));
 openView(location.hash.slice(1).replace(/^view-/,''));
+for(const tab of document.querySelectorAll('[data-view]'))tab.disabled=false;
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,4500);}
 async function post(url,data){const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify(data)});const result=await response.json();if(!response.ok)throw Object.assign(Error(result.error),{code:result.code});return result;}
 function settings(){return {displaySource:$('#displaySource').value,size:Number($('#size').value),gap:Number($('#gap').value),characterScale:Number($('#characterScale').value),badgeSize:Number($('#badgeSize').value),nameSize:Number($('#nameSize').value),colorBackground:$('#colorBackground').checked,bounceSpeaking:$('#bounceSpeaking').checked,showCharacter:$('#showCharacter').checked,horizontalNamePosition:$('#horizontalNamePosition').value,verticalNamePosition:$('#verticalNamePosition').value,orientation:$('#orientation').value,showStatus:$('#showStatus').checked,showNames:$('#showNames').checked,dimIdle:$('#dimIdle').checked,avatarShape:$('#avatarShape').value,nameOpacity:Number($('#nameOpacity').value),motionHeight:Number($('#motionHeight').value)};}
@@ -55,14 +56,14 @@ function renderPreview(){
   target.classList.toggle('Voice_voiceStates__scl',!gameOnly);
   if(gameOnly){
     previewRequest++;clearTimeout(previewTimer);previewKey='';
-    const players=state.mode==='demo'?state.game.displayPlayers.slice(0,Number($('#demo-count').value)):state.game.displayPlayers;const rows=players.map(player=>({gameKey:player.key,visible:true,player,member:null}));
+    const players=state.game.displayPlayers;const rows=players.map(player=>({gameKey:player.key,visible:true,player,member:null}));
     target.style.width='';target.style.height='';const count=renderCrew(target,{...state,rows,preset:{...state.preset,settings:value}});$('#preview-empty').hidden=count>0;
     $('#preview-empty-title').textContent='Among Usのロビーに参加してください';$('#preview-empty-description').textContent='参加者を自動表示します。デモでも見た目を試せます。';fitPreview();return;
   }
-  const key=JSON.stringify([state.mode,$('#demo-count').value,value,draft,state.game.displayPlayers]);if(key===previewKey)return;previewKey=key;clearTimeout(previewTimer);const sequence=++previewRequest;
+  const key=JSON.stringify([state.mode,value,draft,state.game.displayPlayers]);if(key===previewKey)return;previewKey=key;clearTimeout(previewTimer);const sequence=++previewRequest;
   previewTimer=setTimeout(async()=>{
     try{
-      const result=await post('/api/preview',{settings:value,links:draft,sampleCount:Number($('#demo-count').value)});if(sequence!==previewRequest||previewKey!==key)return;
+      const result=await post('/api/preview',{settings:value,links:draft});if(sequence!==previewRequest||previewKey!==key)return;
       let sheet=$('#preview-generated-style');if(!sheet){sheet=document.createElement('style');sheet.id='preview-generated-style';document.head.append(sheet);}sheet.textContent=result.css;
       target.className='crew-row Voice_voiceStates__scl';target.style.width=result.width+'px';target.style.height=result.height+'px';
       target.replaceChildren(...result.rows.map((row,index)=>{
@@ -95,7 +96,7 @@ function updateSaveState(){
   if(creatingPreset)for(const node of document.querySelectorAll('#mapping-rows input,#mapping-rows select,#mapping-rows button'))node.disabled=true;
   $('#create-display-preset').disabled=saving||streamkitSaving;$('#display-preset-name').disabled=saving||streamkitSaving;$('#display-presets').disabled=saving||streamkitSaving;
   $('#save-display').disabled=!settingsDirty||saving||streamkitSaving;
-  $('#demo-count-label').hidden=!demo;$('#demo').disabled=creatingPreset||streamkitSaving;$('#clear-data').disabled=creatingPreset||saving||streamkitSaving;
+  $('#demo').disabled=creatingPreset||streamkitSaving;$('#clear-data').disabled=creatingPreset||saving||streamkitSaving;
   $('#discard').hidden=!settingsDirty;$('#discard').disabled=saving||streamkitSaving;$('#discard-streamkit').hidden=!streamkitDirty;$('#discard-streamkit').disabled=saving||streamkitSaving;
   $('#member-save-state').textContent=demo?'デモの対応づけは保存しません':memberSaving?'保存しています':memberSaveError?'保存できません':dirty?'保存待ち':'自動保存済み';$('#member-save-state').classList.toggle('save-error',!!memberSaveError);$('#retry-members').hidden=demo||!memberSaveError||memberConflict;$('#reload-members').hidden=demo||!memberConflict;$('#reload-members').disabled=memberSaving;$('#retry-members').disabled=memberSaving;
   $('#clear-data').disabled=creatingPreset||saving||streamkitSaving||memberSaving;
@@ -110,7 +111,7 @@ function updateStreamkitState(){
   const saved=state?.preset.streamkitUrl??'',busy=saving||streamkitSaving;let url='',error='';try{url=cleanStreamkitUrl(streamkitDraft);}catch(e){error=e.message;}
   $('#streamkit-state').textContent=error||(streamkitDirty?'未保存の変更があります':saved?'URL保存済み · メンバータブで表示先を切り替えられます':'未設定');$('#streamkit-state').classList.toggle('invalid',!!error);
   $('#streamkit-url').disabled=busy;$('#streamkit-name').disabled=busy;$('#save-streamkit').disabled=!streamkitDirty||busy;$('#new-streamkit').disabled=busy;$('#copy-streamkit').disabled=!saved||streamkitDirty||busy;$('#clear-streamkit').disabled=!streamkitFormId||streamkitDirty||busy;$('#streamkit-target').disabled=busy;
-  const obs=state?.obs??{};$('#obs-toggle').textContent=obs.enabled?'OBS連携を停止':'OBS連携を開始';$('#obs-toggle').disabled=busy||(!obs.enabled&&(!saved||streamkitDirty||state?.mode==='demo'||state?.preset.settings.displaySource!=='streamkit'||settingsDirty));
+  const obs=state?.obs??{};$('#obs-toggle').textContent=obs.enabled?'連携を一時停止':'連携を再開';$('#obs-toggle').disabled=busy||(!obs.enabled&&(!saved||streamkitDirty||state?.mode==='demo'||state?.preset.settings.displaySource!=='streamkit'||settingsDirty));
   $('#autoStartObs').checked=state?.preferences?.autoStartObs===true;$('#autoStartObs').disabled=busy;$('#obs-script-copy').disabled=!window.crewLink?.copyObsScriptPath||!obs.enabled;
   $('#obs-status').textContent=obs.error?'連携を確認してください':obs.enabled?'連携ファイル更新中':'停止中';$('#obs-dot').classList.toggle('online',!!obs.enabled);$('#obs-folder').disabled=!window.crewLink?.openObsFolder||!obs.enabled;
   $('#obs-sync-state').textContent=obs.error||(obs.enabled?`連携ファイル更新中 · 登録 ${obs.mapped}件 / ゲーム内 ${obs.present}人（OBS表示はOBS側で確認）`:'停止中');
@@ -231,12 +232,12 @@ function receive(next){
   if(JSON.stringify(presetSignature([...$('#display-presets').options]))!==JSON.stringify(next.displayPresets.map(p=>[p.id,p.name])))$('#display-presets').replaceChildren(...next.displayPresets.map(p=>{const option=document.createElement('option');option.value=p.id;option.textContent=p.name;return option;}));$('#display-presets').value=next.displayPreset.id;
   $('#unresolved').hidden=true;
   const key=JSON.stringify([next.mode,next.game.players,next.game.displayPlayers.map(p=>p.key),next.discord.members.map(m=>({id:m.id,name:m.name})),next.preset.id,next.preset.streamkitUrl,draft]);
-  if(key!==lastKey&&!memberDragKey&&!document.querySelector('#mapping-rows :focus')){table();lastKey=key;}
+  if(key!==lastKey&&(changed||modeChanged||(!memberDragKey&&!document.querySelector('#mapping-rows :focus')))){table();lastKey=key;}
   updateMemberVisibility();renderPreview();updateSaveState();if(dirty&&!memberSaving&&!memberSaveError)scheduleMemberSave();
 }
 async function toggleDemo(){if(dirty||memberSaving||settingsDirty||streamkitDirty||streamkitSaving||saving){toast('変更を保存するか、元に戻してから切り替えてください。');return;}try{receive(await post('/api/demo',{enabled:state.mode!=='demo'}));}catch(error){toast(error.message);}}
 async function copyUrl(){try{if(window.crewLink?.copyOverlayUrl)await window.crewLink.copyOverlayUrl();else await navigator.clipboard.writeText(state.overlayUrl);toast('OBS用URLをコピーしました。');}catch{toast('URL欄を選択してコピーしてください。');$('#overlay-url').focus();$('#overlay-url').select();}}
-$('#demo-count').onchange=renderPreview;$('#demo').onclick=toggleDemo;$('#copy-url').onclick=copyUrl;$('#copy-game-url').onclick=copyUrl;
+$('#demo').onclick=toggleDemo;$('#copy-url').onclick=copyUrl;$('#copy-game-url').onclick=copyUrl;
 
 async function saveChanges(){
   if(saving||streamkitSaving||!settingsDirty)return;const target=displayKey(state),revision=displayRevision;saving=true;updateSaveState();

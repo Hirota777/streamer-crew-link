@@ -9,7 +9,7 @@ test('ゲームのみモードを保存・復元し、Discord対応づけを保�
 test('ゲームのみでも会議で確定した死亡・保持中の一覧・明示退出を反映する',()=>fixture(async app=>{
  await app.store.save({links:[],settings:{displaySource:'game'}});const p={key:'p',name:'A',color:'#c51111',lifeState:'exiled'};app.ingestGame({scene:'Ended',players:[p]});app.ingestGame({scene:'Lobby',players:[]});assert.equal(app.snapshot().rows[0].player.lifeState,'exiled');app.ingestGame({scene:'Lobby',players:[],departedKeys:['p']});assert.equal(app.snapshot().rows.length,0);
 }));
-test('非公開版はゲーム表示で初期化し、不正な表示モードを拒否する',()=>{assert.equal(cleanSettings({}).displaySource,'game');assert.throws(()=>cleanSettings({displaySource:'invalid'}));});
+test('初期表示はStreamkitで、不正な表示モードを拒否する',()=>{assert.equal(cleanSettings({}).displaySource,'streamkit');assert.throws(()=>cleanSettings({displaySource:'invalid'}));});
 
 import {EventEmitter} from 'node:events';import {APPLICATION} from '../lib/application.mjs';
 test('ゲームのみで起動すると保存認証があってもDiscordへの接続を開始しない',async()=>{

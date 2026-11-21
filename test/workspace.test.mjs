@@ -4,7 +4,7 @@ const url='https://streamkit.discord.com/overlay/voice/123456789012345678/234567
 const temporary=()=>mkdtemp(path.join(os.tmpdir(),'crew-workspace-'));
 test('0.2.3のプリセットと対応づけを保持し、URLを使う選択中の表示方式だけを移行する',async()=>{
  const dir=await temporary();try{
-  await writeFile(path.join(dir,'settings.json'),JSON.stringify({schema:2,active:'a',activeDisplay:'x',presets:[{id:'a',name:'メンバー',links,streamkitUrl:url}],displayPresets:[{id:'x',name:'縦',settings:{...defaults,size:110,orientation:'vertical',avatarShape:'round'}},{id:'y',name:'クルー',settings:{...defaults,size:70}}]}));
+  await writeFile(path.join(dir,'settings.json'),JSON.stringify({schema:2,active:'a',activeDisplay:'x',presets:[{id:'a',name:'メンバー',links,streamkitUrl:url}],displayPresets:[{id:'x',name:'縦',settings:{...defaults,size:110,orientation:'vertical',avatarShape:'round'}},{id:'y',name:'クルー',settings:{...defaults,displaySource:'game',size:70}}]}));
   const store=new Store(dir,{allowPlaintext:true});await store.load();assert.equal(store.current.settings.displaySource,'streamkit');assert.equal(store.current.settings.size,110);assert.equal(store.current.settings.avatarShape,'round');assert.equal(store.current.links[0].label,'表示名');assert.equal(store.data.displayPresets[1].settings.displaySource,'game');
   const loaded=new Store(dir,{allowPlaintext:true});await loaded.load();assert.deepEqual(loaded.data,store.data);
  }finally{await rm(dir,{recursive:true,force:true});}
@@ -31,7 +31,7 @@ test('プレビューは未保存の形状を反映しても保存せず、新�
 }));
 test('デモの人数や状態は配信用イベントに混ざらず、表示方式の切替でStreamkit連携を停止する',()=>apiFixture(async({app,base,post})=>{
  await app.store.save({links,streamkitUrl:url,settings:{displaySource:'streamkit'}});app.ingestGame({scene:'Lobby',players:[{key:'a',name:'実データ',color:'#ca243e',colorId:0}]});assert.equal((await post('/api/obs/export',{enabled:true})).status,200);
- await post('/api/demo',{enabled:true});const preview=await(await post('/api/preview',{links:[],settings:{displaySource:'streamkit'},sampleCount:3})).json();assert.equal(preview.rows.length,3);
+ await post('/api/demo',{enabled:true});const preview=await(await post('/api/preview',{links:[],settings:{displaySource:'streamkit'},sampleCount:3})).json();assert.equal(preview.rows.length,11);
  async function event(route){const response=await fetch(base+route),reader=response.body.getReader();let text='';while(!text.includes('\n\n')){const item=await reader.read();text+=new TextDecoder().decode(item.value);}await reader.cancel();return JSON.parse(text.split('\n\n')[0].slice(6));}
  const gui=await event('/api/events'),live=await event('/api/live-events');assert.equal(gui.mode,'demo');assert.equal(gui.game.players.length,11);assert.equal(live.mode,'live');assert.equal(live.preset.settings.displaySource,'game');assert.equal(live.game.players[0].name,'実データ');assert.equal(live.game.players.length,1);
  await post('/api/demo',{enabled:false});await post('/api/save',{settings:{displaySource:'game'}});await new Promise(r=>setTimeout(r,350));assert.equal(app.obsExport.enabled,false);
