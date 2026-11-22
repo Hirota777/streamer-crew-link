@@ -87,4 +87,4 @@ OBSの同期を止めると元のURL・CSS・サイズへ戻ります。強制�
 
 「あとで」は今回の通知を閉じ、起動時の自動確認が有効なら次回また通知します。「スキップ」は同じ版の自動通知だけを停止し、新しい版は対象にします。手動の「更新を確認」ではスキップした版も表示します。操作後の案内と初期設定のスキップ中表示で区別できます。
 
-[導入手順書・機能仕様書・制御仕様書](https://github.com/Hirota777/streamer-crew-link/tree/main/docs)はGitHubで提供しています。PDFはアプリのMSI・実行用ZIPには同梱しません。
+[v1.1.6導入手順書](docs/manuals/installation-guide-v1.1.6.pdf)と[機能仕様書・制御仕様書](https://github.com/Hirota777/streamer-crew-link/tree/main/docs)はGitHubで提供しています。PDFはアプリのMSI・実行用ZIPには同梱しません。
