@@ -15,7 +15,7 @@ import {ObsStyleExport,createObsStyle} from './lib/obs-style.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url));
 export async function createApp({directory=path.join(here,'data'),port=37891,credentialVault=null,settingsCipher=null,allowPlaintextSettings=false,clearLegacyData=async()=>{},discordClient,rpcEnabled=false,openExternal,now=Date.now,spriteEncoder=null,licenseDirectory=here,readerLicenseDirectory=path.join(here,'reader')}={}){
   const store=new Store(directory,{cipher:settingsCipher,allowPlaintext:allowPlaintextSettings});await store.load();
-  const obsExport=new ObsStyleExport(directory,{spriteEncoder,now});
+  const obsExport=new ObsStyleExport(directory,{spriteEncoder,now,getState:()=>snapshot(false,true)});
   const csrf=randomBytes(32).toString('hex');
   const oauth=new OAuthFlow({application:APPLICATION,openExternal});
   const client=discordClient??new Discord({authorize:()=>oauth.begin(),cancelAuthorization:()=>oauth.cancel()});
@@ -28,12 +28,12 @@ export async function createApp({directory=path.join(here,'data'),port=37891,cre
   // Start only after committed setup changes, never on a heartbeat or demo frame.
   function syncObs(){
     const ready=store.current.settings.displaySource==='streamkit'&&!!store.current.streamkitUrl;
-    if(!ready){if(obsExport.enabled)obsExport.setEnabled(false,snapshot());return;}
-    if(mode!=='live'||obsPaused||!store.data.preferences.autoStartObs||obsExport.enabled)return;
+    if(!ready){if(obsExport.requested)obsExport.setEnabled(false,snapshot());return;}
+    if(mode!=='live'||obsPaused||!store.data.preferences.autoStartObs||obsExport.requested)return;
     try{obsExport.setEnabled(true,snapshot());}catch{obsExport.info.error='OBS連携を自動で開始できません。保存先を確認して再開してください。';}
   }
-  function snapshot(liveOnly=false){
-    const isDemo=mode==='demo'&&!liveOnly, online=isDemo||(lastGame!==null&&now()-lastGame<5000);
+  function snapshot(liveOnly=false,forceLive=false){
+    const isDemo=mode==='demo'&&!liveOnly&&!forceLive, online=isDemo||(lastGame!==null&&now()-lastGame<5000);
     const g=isDemo?demoGame:(online?game:null),members=isDemo?demoMembers:discord.members;
     const displayPlayers=isDemo?demoGame.players:presentation.view();
     const preset=liveOnly?{...store.current,settings:{...store.current.settings,displaySource:'game'}}:store.current;

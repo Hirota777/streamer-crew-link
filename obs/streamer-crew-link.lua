@@ -81,6 +81,11 @@ local function resolve_selection(settings)
         end
     end
 end
+-- A transport error must not navigate away from the last good overlay.
+-- Only a fresh explicit stop, a user edit, or script unload restores it.
+local function hold_display()
+    if os.time()-last_alive>10 then warn("連携の更新が途切れています。最後の正常な表示を保持し、復旧を待っています。") end
+end
 local function tick()
     if pending_update then
         if not restore() then if os.time()-pending_since>10 then warn(restore_warning) end;return end
@@ -91,13 +96,14 @@ local function tick()
     resolve_selection(selection_settings)
     if target_uuid=="" or control_path=="" then return end
     local control=read_json(control_path,4096)
-    if not control then if os.time()-last_alive>10 then restore() end; return end
+    if not control then hold_display(); return end
     local active=obs.obs_data_get_bool(control,"active")
     local schema=obs.obs_data_get_int(control,"schema")
     local stamp=obs.obs_data_get_int(control,"updatedAt")/1000
     local next_revision=obs.obs_data_get_string(control,"revision")
     obs.obs_data_release(control)
-    if schema~=1 or not active or math.abs(os.time()-stamp)>10 then restore(); return end
+    if schema~=1 or math.abs(os.time()-stamp)>10 then hold_display(); return end
+    if not active then restore(); return end
     local source=obs.obs_get_source_by_uuid(target_uuid)
     if not source then warn("選択したブラウザーソースが見つかりません。"); return end
     if obs.obs_source_get_unversioned_id(source)~="browser_source" then obs.obs_source_release(source); warn("ブラウザーソースだけを選択してください。"); return end
@@ -110,10 +116,10 @@ local function tick()
             end
         end
     end
-    if next_revision==revision and applied then last_alive=stamp; obs.obs_source_release(source); return end
+    if next_revision==revision and applied then last_alive=stamp;last_warning=""; obs.obs_source_release(source); return end
     local folder=control_path:match("^(.*[/\\])") or ""
     local style=read_json(folder.."streamkit-style.json",8*1024*1024)
-    if not style then obs.obs_source_release(source); if os.time()-last_alive>10 then restore() end; return end
+    if not style then obs.obs_source_release(source);hold_display(); return end
     local url=obs.obs_data_get_string(style,"url")
     local css=obs.obs_data_get_string(style,"css")
     local style_revision=obs.obs_data_get_string(style,"revision")
@@ -121,7 +127,7 @@ local function tick()
     local style_schema=obs.obs_data_get_int(style,"schema")
     obs.obs_data_release(style)
     if style_schema~=1 or style_revision~=next_revision or not valid_url(url) or css:find("/* Streamer crew link: generated styling */",1,true)~=1 or width<40 or width>8192 or height<40 or height>8192 then
-        obs.obs_source_release(source); if os.time()-last_alive>10 then restore() end; warn("アプリの連携ファイルを確認してください。"); return
+        obs.obs_source_release(source);warn("アプリの連携ファイルを確認してください。最後の正常な表示を保持しています。"); return
     end
     if not backup then backup=current; owned_source=obs.obs_source_get_name(source); owned_uuid=target_uuid end
     local values={url=url,css=backup.css.."\n"..css}
@@ -131,7 +137,7 @@ local function tick()
 end
 
 function script_description()
-    return "公式StreamkitのVoice表示にクルーと生死マークを重ねます。アプリの連携を開始し、初回は「配信表示を作成」を押してください。同じソースを再利用します。既存ソースを使う場合は下で選択して同期を有効にします。ユーザーIDを含む独自アバター画像が対象です。同期解除・アプリ終了時には元の設定へ戻します。"
+    return "公式StreamkitのVoice表示にクルーと生死マークを重ねます。アプリの連携を開始し、初回は「配信表示を作成」を押してください。同じソースを再利用します。既存ソースを使う場合は下で選択して同期を有効にします。ユーザーIDを含む独自アバター画像が対象です。連携エラー時は最後の正常な表示を保持します。明示的な停止・正常終了時には元の設定へ戻します。"
 end
 function script_defaults(settings)
     obs.obs_data_set_default_bool(settings,"enabled",false)

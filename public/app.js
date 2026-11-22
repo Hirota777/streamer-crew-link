@@ -111,10 +111,10 @@ function updateStreamkitState(){
   const saved=state?.preset.streamkitUrl??'',busy=saving||streamkitSaving;let url='',error='';try{url=cleanStreamkitUrl(streamkitDraft);}catch(e){error=e.message;}
   $('#streamkit-state').textContent=error||(streamkitDirty?'未保存の変更があります':saved?'URL保存済み · メンバータブで表示先を切り替えられます':'未設定');$('#streamkit-state').classList.toggle('invalid',!!error);
   $('#streamkit-url').disabled=busy;$('#streamkit-name').disabled=busy;$('#save-streamkit').disabled=!streamkitDirty||busy;$('#new-streamkit').disabled=busy;$('#copy-streamkit').disabled=!saved||streamkitDirty||busy;$('#clear-streamkit').disabled=!streamkitFormId||streamkitDirty||busy;$('#streamkit-target').disabled=busy;
-  const obs=state?.obs??{};$('#obs-toggle').textContent=obs.enabled?'連携を一時停止':'連携を再開';$('#obs-toggle').disabled=busy||(!obs.enabled&&(!saved||streamkitDirty||state?.mode==='demo'||state?.preset.settings.displaySource!=='streamkit'||settingsDirty));
+  const obs=state?.obs??{};$('#obs-toggle').textContent=(obs.enabled||obs.recovering)?'連携を一時停止':'連携を再開';$('#obs-toggle').disabled=busy||(!obs.enabled&&!obs.recovering&&(!saved||streamkitDirty||state?.mode==='demo'||state?.preset.settings.displaySource!=='streamkit'||settingsDirty));
   $('#autoStartObs').checked=state?.preferences?.autoStartObs===true;$('#autoStartObs').disabled=busy;$('#obs-script-copy').disabled=!window.crewLink?.copyObsScriptPath||!obs.enabled;
-  $('#obs-status').textContent=obs.error?'連携を確認してください':obs.enabled?'連携ファイル更新中':'停止中';$('#obs-dot').classList.toggle('online',!!obs.enabled);$('#obs-folder').disabled=!window.crewLink?.openObsFolder||!obs.enabled;
-  $('#obs-sync-state').textContent=obs.error||(obs.enabled?`連携ファイル更新中 · 登録 ${obs.mapped}件 / ゲーム内 ${obs.present}人（OBS表示はOBS側で確認）`:'停止中');
+  $('#obs-status').textContent=obs.recovering?'復旧を試みています':obs.error?'連携を確認してください':obs.enabled?'連携ファイル更新中':'停止中';$('#obs-dot').classList.toggle('online',!!obs.enabled);$('#obs-folder').disabled=!window.crewLink?.openObsFolder||!obs.enabled;
+  $('#obs-sync-state').textContent=obs.recovering?`復旧を試みています · ${obs.retryAttempts}回目の再試行を待機中${obs.retryAttempts>=4?' · 保存先の空き容量・アクセス権を確認してください':''}`:obs.error||(obs.enabled?`連携ファイル更新中 · 登録 ${obs.mapped}件 / ゲーム内 ${obs.present}人（OBS表示はOBS側で確認）`:'停止中');
 }
 function editStreamkit(){streamkitDraft=$('#streamkit-url').value;streamkitNameDraft=$('#streamkit-name').value;streamkitDirty=true;streamkitEditorRevision++;updateSaveState();}
 $('#streamkit-url').oninput=editStreamkit;$('#streamkit-name').oninput=editStreamkit;
@@ -136,7 +136,7 @@ $('#copy-streamkit').onclick=async()=>{
  try{const url=cleanStreamkitUrl(state?.preset.streamkitUrl);if(!url||streamkitDirty)throw Error('先にURLを保存してください。');if(window.crewLink?.copyStreamkitUrl)await window.crewLink.copyStreamkitUrl();else await navigator.clipboard.writeText(url);toast('保存済みのStreamkit URLをコピーしました。');}
  catch{toast('URLを保存してからコピーしてください。コピーできない場合はURL欄を選択してコピーしてください。');$('#streamkit-url').focus();$('#streamkit-url').select();}
 };
-$('#obs-toggle').onclick=async()=>{try{receive(await post('/api/obs/export',{enabled:!state.obs?.enabled}));}catch(e){toast(e.message);}};
+$('#obs-toggle').onclick=async()=>{try{receive(await post('/api/obs/export',{enabled:!(state.obs?.enabled||state.obs?.recovering)}));}catch(e){toast(e.message);}};
 $('#obs-folder').onclick=async()=>{try{await window.crewLink.openObsFolder();}catch(e){toast(e.message);}};
 $('#obs-script-copy').onclick=async()=>{try{await window.crewLink.copyObsScriptPath();toast('スクリプトの場所をコピーしました。');}catch(e){toast(e.message);}};
 $('#autoStartObs').onchange=async()=>{try{receive(await post('/api/preferences',{autoStartObs:$('#autoStartObs').checked}));toast('自動開始の設定を保存しました。');}catch(e){toast(e.message);receive(state);}};
