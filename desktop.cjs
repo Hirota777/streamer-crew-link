@@ -49,7 +49,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
  app.on('window-all-closed',()=>app.quit());
  app.on('before-quit',()=>{quitting=true;});
  // beforeunload can still cancel before-quit. Keep the server/reader alive until every window has closed.
- app.on('will-quit',()=>{stopReader?.();local?.shutdown();});
+ app.on('will-quit',()=>{stopReader?.();if(local&&local.obsExport.close()===false)dialog.showErrorBox('OBSへの停止通知を送れません','OBSの「ツール → スクリプト」で同期のチェックを外してから、この案内を閉じてください。保存先が書き込みできないため、OBSに最後の表示が残る可能性があります。');local?.shutdown();});
 }
 const publicLinks=new Set(['https://github.com/Hirota777/streamer-crew-link/blob/main/PRIVACY.md','https://github.com/Hirota777/streamer-crew-link/blob/main/TERMS.md','https://github.com/Hirota777/streamer-crew-link/issues','https://streamkit.discord.com/overlay']);
 function secure(window){

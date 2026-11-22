@@ -1,4 +1,4 @@
-# Streamer crew link v1.1.8
+# Streamer crew link v1.1.9
 
 Among Usの色・名前・生存状態をOBSに表示するWindows用の非公式配信補助ツールです。通常版・Nebula・SNRに対応します。Discord不要の「クルーのみ」と、公式Discord Streamkitの画像へ重ねる表示を選べます。
 
@@ -12,7 +12,7 @@ Among Usの色・名前・生存状態をOBSに表示するWindows用の非公�
 
 ## ダウンロードとインストール
 
-配布された `Streamer-crew-link-1.1.8-Windows-x64.msi` を使用します。公開済みの版は[リリース一覧](https://github.com/Hirota777/streamer-crew-link/releases)で確認できます。Windows 10以降の64ビット版向けです。Node.jsや.NETの別途導入は不要です。
+配布された `Streamer-crew-link-1.1.9-Windows-x64.msi` を使用します。公開済みの版は[リリース一覧](https://github.com/Hirota777/streamer-crew-link/releases)で確認できます。Windows 10以降の64ビット版向けです。Node.jsや.NETの別途導入は不要です。
 
 MSIは同じWindowsユーザーの `%LOCALAPPDATA%\Programs\Streamer crew link` にインストールし、旧公開版のアプリを置き換えます。新しい設定の保存先は `%APPDATA%\Streamer crew link` です。配信表示は更新中に止まるため、配信終了後に更新してください。
 
@@ -38,6 +38,8 @@ MSIは同じWindowsユーザーの `%LOCALAPPDATA%\Programs\Streamer crew link` 
 デモは11人固定で、表示方式・縦横・見た目を試せます。デモの参加者は本番のOBS表示や保存済みの対応づけには混ざりません。
 
 自動連携は初期状態で有効です。次回起動や、クルーのみからDiscord画像方式へ保存・切替した際にも自動で再開します。以前に自動開始をオフにしている場合は、初期設定の「設定済みならOBS連携を自動で開始する」をオンにしてください。初期設定内の「連携を一時停止」で止めた場合は、その起動中は保存やデモ終了で勝手に再開しません。「連携を再開」で再開できます。設定ファイルを読み込んだ直後も、確認後に手動で再開してください。
+
+停止通知は通常の状態ファイルと独立した通知ファイルで伝えます。両方の書き込みに失敗した場合は、アプリの実行中は停止通知だけを再送します。正常終了時にも両方が書けない場合は、OBSで同期を手動停止する案内を表示します。表示ファイルは内容まで照合し、破損や不一致も検出して再生成します。
 
 連携ファイルの読取失敗・更新停止時、OBSは最後の正常なURL・CSS・寸法を保持します。復旧しても同じ表示なら再設定しません。手動停止・正常終了では元の設定へ戻します。更新後はOBSの「ツール→スクリプト」でスクリプトを再読み込みしてください。
 

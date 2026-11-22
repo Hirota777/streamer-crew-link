@@ -113,8 +113,8 @@ function updateStreamkitState(){
   $('#streamkit-url').disabled=busy;$('#streamkit-name').disabled=busy;$('#save-streamkit').disabled=!streamkitDirty||busy;$('#new-streamkit').disabled=busy;$('#copy-streamkit').disabled=!saved||streamkitDirty||busy;$('#clear-streamkit').disabled=!streamkitFormId||streamkitDirty||busy;$('#streamkit-target').disabled=busy;
   const obs=state?.obs??{};$('#obs-toggle').textContent=(obs.enabled||obs.recovering)?'連携を一時停止':'連携を再開';$('#obs-toggle').disabled=busy||(!obs.enabled&&!obs.recovering&&(!saved||streamkitDirty||state?.mode==='demo'||state?.preset.settings.displaySource!=='streamkit'||settingsDirty));
   $('#autoStartObs').checked=state?.preferences?.autoStartObs===true;$('#autoStartObs').disabled=busy;$('#obs-script-copy').disabled=!window.crewLink?.copyObsScriptPath||!obs.enabled;
-  $('#obs-status').textContent=obs.recovering?'復旧を試みています':obs.error?'連携を確認してください':obs.enabled?'連携ファイル更新中':'停止中';$('#obs-dot').classList.toggle('online',!!obs.enabled);$('#obs-folder').disabled=!window.crewLink?.openObsFolder||!obs.enabled;
-  $('#obs-sync-state').textContent=obs.recovering?`復旧を試みています · ${obs.retryAttempts}回目の再試行を待機中${obs.retryAttempts>=4?' · 保存先の空き容量・アクセス権を確認してください':''}`:obs.error||(obs.enabled?`連携ファイル更新中 · 登録 ${obs.mapped}件 / ゲーム内 ${obs.present}人（OBS表示はOBS側で確認）`:'停止中');
+  $('#obs-status').textContent=obs.stopPending?'停止通知を再送しています':obs.recovering?'復旧を試みています':obs.error?'連携を確認してください':obs.enabled?'連携ファイル更新中':'停止中';$('#obs-dot').classList.toggle('online',!!obs.enabled);$('#obs-folder').disabled=!window.crewLink?.openObsFolder||!obs.enabled;
+  $('#obs-sync-state').textContent=obs.stopPending?'停止通知を再送しています · 保存先の空き容量・アクセス権を確認してください':obs.recovering?`復旧を試みています · ${obs.retryAttempts}回目の再試行を待機中${obs.retryAttempts>=4?' · 保存先の空き容量・アクセス権を確認してください':''}`:obs.error||(obs.enabled?`連携ファイル更新中 · 登録 ${obs.mapped}件 / ゲーム内 ${obs.present}人（OBS表示はOBS側で確認）`:'停止中');
 }
 function editStreamkit(){streamkitDraft=$('#streamkit-url').value;streamkitNameDraft=$('#streamkit-name').value;streamkitDirty=true;streamkitEditorRevision++;updateSaveState();}
 $('#streamkit-url').oninput=editStreamkit;$('#streamkit-name').oninput=editStreamkit;

@@ -95,6 +95,13 @@ local function tick()
     if not enabled or paused then if backup then restore() end; return end
     resolve_selection(selection_settings)
     if target_uuid=="" or control_path=="" then return end
+    local stop_folder=control_path:match("^(.*[/\\])") or ""
+    local stop=read_json(stop_folder.."streamkit-stop.json",4096)
+    if stop then
+        local stopped=obs.obs_data_get_int(stop,"schema")==1 and obs.obs_data_get_bool(stop,"stop")
+        obs.obs_data_release(stop)
+        if stopped then restore();return end
+    end
     local control=read_json(control_path,4096)
     if not control then hold_display(); return end
     local active=obs.obs_data_get_bool(control,"active")
